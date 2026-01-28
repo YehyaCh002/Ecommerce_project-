@@ -27,7 +27,7 @@ pool.query('SELECT NOW()', (err, res) => {
 });
 
 // Routes
-app.get('/', (req: Request, res: Response) => {
+app.get('/get', (req: Request, res: Response) => {
   res.json({
     message: 'E-commerce API with Express, TypeScript, and PostgreSQL',
     status: 'running',
