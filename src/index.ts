@@ -1,7 +1,11 @@
+import 'reflect-metadata';
 import express, { Request, Response } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import { Pool } from 'pg';
+import { AppDataSource } from './config/data-source';
+import routes from './routes';
+import { errorHandler } from './middlewares/errorHandler';
+import { Logger } from './utils/logger';
 
 dotenv.config();
 
@@ -12,35 +16,21 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
-// PostgreSQL connection pool
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-});
-
-// Test database connection
-pool.query('SELECT NOW()', (err, res) => {
-  if (err) {
-    console.error('Database connection error:', err);
-  } else {
-    console.log('Database connected successfully:', res.rows[0]);
-  }
-});
-
 // Routes
-app.get('/get', (req: Request, res: Response) => {
+app.get('/', (req: Request, res: Response) => {
   res.json({
-    message: 'E-commerce API with Express, TypeScript, and PostgreSQL',
+    message: 'E-commerce API with Express, TypeScript, PostgreSQL, and TypeORM',
     status: 'running',
   });
 });
 
 app.get('/health', async (req: Request, res: Response) => {
   try {
-    const result = await pool.query('SELECT NOW()');
+    const isConnected = AppDataSource.isInitialized;
     res.json({
       status: 'healthy',
-      database: 'connected',
-      timestamp: result.rows[0].now,
+      database: isConnected ? 'connected' : 'disconnected',
+      timestamp: new Date().toISOString(),
     });
   } catch (error) {
     res.status(500).json({
@@ -51,15 +41,32 @@ app.get('/health', async (req: Request, res: Response) => {
   }
 });
 
-// Start server
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
-});
+// API Routes
+app.use('/api', routes);
+
+// Error handler middleware (must be last)
+app.use(errorHandler);
+
+// Initialize TypeORM and start server
+AppDataSource.initialize()
+  .then(() => {
+    Logger.info('Database connection established successfully');
+
+    app.listen(PORT, () => {
+      Logger.info(`Server is running on port ${PORT}`);
+    });
+  })
+  .catch((error) => {
+    Logger.error('Error during Data Source initialization:', error);
+    process.exit(1);
+  });
 
 // Graceful shutdown
-process.on('SIGTERM', () => {
-  console.log('SIGTERM signal received: closing HTTP server');
-  pool.end(() => {
-    console.log('Database pool has ended');
-  });
+process.on('SIGTERM', async () => {
+  Logger.info('SIGTERM signal received: closing HTTP server');
+  if (AppDataSource.isInitialized) {
+    await AppDataSource.destroy();
+    Logger.info('Database connection closed');
+  }
+  process.exit(0);
 });

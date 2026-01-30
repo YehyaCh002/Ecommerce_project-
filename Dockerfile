@@ -7,7 +7,7 @@ WORKDIR /app
 COPY package*.json ./
 COPY tsconfig.json ./
 
-# Install dependencies
+# Install ALL dependencies (including dev dependencies)
 RUN npm ci
 
 # Copy source code
@@ -17,15 +17,17 @@ COPY src ./src
 RUN npm run build
 
 # Production stage
-FROM node:18-alpine
+FROM node:18-alpine AS production
 
 WORKDIR /app
 
-# Copy package files
+# Copy package files and install ALL dependencies (need TypeORM CLI)
 COPY package*.json ./
+COPY tsconfig.json ./
+RUN npm ci
 
-# Install production dependencies only
-RUN npm ci --only=production
+# Copy source files (needed for migration generation)
+COPY src ./src
 
 # Copy built files from builder stage
 COPY --from=builder /app/dist ./dist
