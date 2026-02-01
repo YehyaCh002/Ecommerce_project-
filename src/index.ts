@@ -3,7 +3,7 @@ import express, { Request, Response } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import { AppDataSource } from './config/data-source';
-import routes from './routes';
+import userRoutes from './routes';
 import { errorHandler } from './middlewares/errorHandler';
 import { Logger } from './utils/logger';
 
@@ -42,7 +42,7 @@ app.get('/health', async (req: Request, res: Response) => {
 });
 
 // API Routes
-app.use('/api', routes);
+app.use('/api', userRoutes);
 
 // Error handler middleware (must be last)
 app.use(errorHandler);
