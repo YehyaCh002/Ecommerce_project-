@@ -1,4 +1,4 @@
-# E-commerce Project
+# E-commerce Project.
 
 A modern e-commerce backend built with Express.js, TypeScript, PostgreSQL, and TypeORM - fully containerized with Docker.
 
