@@ -294,3 +294,5 @@ This project follows a **NestJS-inspired modular architecture**:
 ## 📄 License
 
 ISC
+
+.
