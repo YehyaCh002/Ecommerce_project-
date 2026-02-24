@@ -9,6 +9,14 @@ export class CategoryService {
     description?: string;
     slug?: string;
   }): Promise<Category> {
+    // Check for existing category by name to avoid duplicate key errors
+    const existing = await this.categoryRepository.findOne({
+      where: { name: data.name },
+    });
+    if (existing) {
+      throw new Error(`Category with name "${data.name}" already exists`);
+    }
+
     const category = this.categoryRepository.create(data);
     return await this.categoryRepository.save(category);
   }

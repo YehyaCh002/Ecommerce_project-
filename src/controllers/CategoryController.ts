@@ -16,6 +16,13 @@ export class CategoryController {
         data: category,
       });
     } catch (error) {
+      if (error instanceof Error && error.message.includes('already exists')) {
+        res.status(409).json({
+          success: false,
+          message: error.message,
+        });
+        return;
+      }
       next(error);
     }
   };

@@ -42,28 +42,16 @@ export class OrderController {
   };
 
   getOrderById = async (
-    req: AuthRequest,
+    req: Request,
     res: Response,
     next: NextFunction
   ): Promise<void> => {
     try {
-      const order = await this.orderService.getOrderById(req.params.id);
+      const order = await this.orderService.getOrderById(parseInt(req.params.id));
       if (!order) {
         res.status(404).json({
           success: false,
           message: 'Order not found',
-        });
-        return;
-      }
-
-      const userId = req.userId || req.body.userId;
-      const userRole = req.userRole || req.body.userRole;
-
-      // Check if user owns the order or is admin
-      if (order.userId !== userId && userRole !== 'admin') {
-        res.status(403).json({
-          success: false,
-          message: 'Unauthorized',
         });
         return;
       }
@@ -154,7 +142,7 @@ export class OrderController {
       }
 
       const order = await this.orderService.updateOrderStatus(
-        req.params.id,
+        parseInt(req.params.id),
         status
       );
       if (!order) {
@@ -189,7 +177,7 @@ export class OrderController {
         return;
       }
 
-      const order = await this.orderService.cancelOrder(req.params.id, userId);
+      const order = await this.orderService.cancelOrder(parseInt(req.params.id), userId);
       res.status(200).json({
         success: true,
         data: order,

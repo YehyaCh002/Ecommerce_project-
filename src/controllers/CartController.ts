@@ -59,6 +59,13 @@ export class CartController {
         data: cart,
       });
     } catch (error) {
+      if (error instanceof Error && error.message.includes('not found')) {
+        res.status(404).json({
+          success: false,
+          message: error.message,
+        });
+        return;
+      }
       next(error);
     }
   };

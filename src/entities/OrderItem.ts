@@ -20,8 +20,8 @@ export class OrderItem {
   @JoinColumn({ name: 'orderId' })
   order: Order;
 
-  @Column({ type: 'uuid' })
-  orderId: string;
+  @Column({ type: 'int' })
+  orderId: number;
 
   @ManyToOne(() => Product, (product) => product.orderItems, {
     onDelete: 'SET NULL',

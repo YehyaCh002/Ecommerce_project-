@@ -2,11 +2,13 @@ import { AppDataSource } from '../config/data-source';
 import { Cart } from '../entities/Cart';
 import { CartItem } from '../entities/CartItem';
 import { Product } from '../entities/Product';
+import { User } from '../entities/User';
 
 export class CartService {
   private cartRepository = AppDataSource.getRepository(Cart);
   private cartItemRepository = AppDataSource.getRepository(CartItem);
   private productRepository = AppDataSource.getRepository(Product);
+  private userRepository = AppDataSource.getRepository(User);
 
   async getOrCreateCart(userId: string): Promise<Cart> {
     let cart = await this.cartRepository.findOne({
@@ -15,6 +17,12 @@ export class CartService {
     });
 
     if (!cart) {
+      // Verify the user exists before creating a cart to avoid FK violation
+      const userExists = await this.userRepository.findOne({ where: { id: userId } });
+      if (!userExists) {
+        throw new Error(`User with id "${userId}" not found`);
+      }
+
       cart = this.cartRepository.create({ userId });
       cart = await this.cartRepository.save(cart);
     }

@@ -10,38 +10,100 @@ import {
 } from 'typeorm';
 import { User } from './User';
 import { OrderItem } from './OrderItem';
+import { Wilaya } from './Wilaya';
+import { OrderHistory } from './OrderHistory';
 
 export enum OrderStatus {
-  PENDING = 'pending',
-  PROCESSING = 'processing',
-  SHIPPED = 'shipped',
-  DELIVERED = 'delivered',
-  CANCELLED = 'cancelled',
+  EN_ATTENTE = 'En attente',
+  NON_REPONDU_1ERE = 'Non répondu - 1ère tentative',
+  CONFIRME = 'Confirmé',
+  OTP_CONFIRME = 'OTP Confirmé',
+  VERS_LA_WILAYA = 'Vers la Wilaya',
+  RECU_A_LA_WILAYA = 'Reçu à la Wilaya',
+  LIVRE = 'Livré',
+  ANNULE = 'Annulé',
+  COMMANDE_FICTIVE = 'Commande Fictive',
+}
+
+export enum OrderSource {
+  FACEBOOK = 'Facebook',
+  INSTAGRAM = 'Instagram',
+  TIKTOK = 'TikTok',
+  WEBSITE = 'Website',
+  PHONE = 'Phone',
+  OTHER = 'Other',
 }
 
 @Entity('orders')
 export class Order {
-  @PrimaryGeneratedColumn('uuid')
-  id: string;
+  @PrimaryGeneratedColumn()
+  id: number;
 
-  @ManyToOne(() => User, (user) => user.orders, { onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'userId' })
-  user: User;
+  // Customer Information
+  @Column({ type: 'varchar', length: 255 })
+  customerName: string;
 
-  @Column({ type: 'uuid' })
-  userId: string;
+  @Column({ type: 'varchar', length: 50 })
+  phoneNumber: string;
 
+  // Pricing
+  @Column({ type: 'decimal', precision: 10, scale: 2 })
+  totalPrice: number;
+
+  // Status Management
   @Column({
     type: 'enum',
     enum: OrderStatus,
-    default: OrderStatus.PENDING,
+    default: OrderStatus.EN_ATTENTE,
   })
   status: OrderStatus;
 
-  @Column({ type: 'decimal', precision: 10, scale: 2 })
-  totalAmount: number;
+  // Rating (1-5 stars)
+  @Column({ type: 'int', nullable: true })
+  rating: number;
 
-  @Column({ type: 'varchar', length: 500 })
+  // Source of the Order
+  @Column({
+    type: 'enum',
+    enum: OrderSource,
+    default: OrderSource.OTHER,
+  })
+  source: OrderSource;
+
+  // Tracking Number
+  @Column({ type: 'varchar', length: 100, nullable: true })
+  trackingNumber: string;
+
+  // Delay Status
+  @Column({ type: 'boolean', default: false })
+  isDelayed: boolean;
+
+  // Relations to Wilaya
+  @ManyToOne(() => Wilaya, (wilaya) => wilaya.orders, { nullable: true })
+  @JoinColumn({ name: 'wilayaId' })
+  wilaya: Wilaya;
+
+  @Column({ type: 'int', nullable: true })
+  wilayaId: number;
+
+  // Assigned User (Associé)
+  @ManyToOne(() => User, (user) => user.assignedOrders, { nullable: true })
+  @JoinColumn({ name: 'assignedToId' })
+  assignedTo: User;
+
+  @Column({ type: 'uuid', nullable: true })
+  assignedToId: string;
+
+  // Original User/Customer (for backward compatibility)
+  @ManyToOne(() => User, (user) => user.orders, { onDelete: 'CASCADE', nullable: true })
+  @JoinColumn({ name: 'userId' })
+  user: User;
+
+  @Column({ type: 'uuid', nullable: true })
+  userId: string;
+
+  // Additional Fields
+  @Column({ type: 'varchar', length: 500, nullable: true })
   shippingAddress: string;
 
   @Column({ type: 'varchar', length: 255, nullable: true })
@@ -50,11 +112,18 @@ export class Order {
   @Column({ type: 'text', nullable: true })
   notes: string;
 
+  // Relations
   @OneToMany(() => OrderItem, (orderItem) => orderItem.order, {
     cascade: true,
   })
   orderItems: OrderItem[];
 
+  @OneToMany(() => OrderHistory, (history) => history.order, {
+    cascade: true,
+  })
+  history: OrderHistory[];
+
+  // Timestamps
   @CreateDateColumn()
   createdAt: Date;
 

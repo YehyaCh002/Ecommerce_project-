@@ -5,6 +5,9 @@ interface AuthRequest extends Request {
   userRole?: string;
 }
 
+// UUID v4 validation regex
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 // Simple authentication middleware for MVP
 // In production, use JWT or other proper authentication
 export const authenticate = (
@@ -19,6 +22,15 @@ export const authenticate = (
     res.status(401).json({
       success: false,
       message: 'Authentication required',
+    });
+    return;
+  }
+
+  // Reject non-UUID user IDs early — prevents "invalid input syntax for type uuid" DB errors
+  if (!UUID_REGEX.test(userId)) {
+    res.status(400).json({
+      success: false,
+      message: 'Invalid user ID format. Must be a valid UUID.',
     });
     return;
   }
