@@ -1,6 +1,6 @@
 # E-commerce Project.
 
-A modern e-commerce backend built with Express.js, TypeScript, PostgreSQL, and TypeORM - fully containerized with Docker.
+A modern e-commerce backend built with Fastify, TypeScript, PostgreSQL, and TypeORM - fully containerized with Docker.
 
 ## 🚀 Features
 
