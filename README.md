@@ -1,9 +1,10 @@
 # E-commerce Project.
 
-A modern e-commerce backend built with Express.js, TypeScript, PostgreSQL, and TypeORM - fully containerized with Docker.
+A modern e-commerce backend built with **Fastify**, TypeScript, PostgreSQL, and TypeORM - fully containerized with Docker.
 
 ## 🚀 Features
 
+- ✅ **Fastify** - High-performance web framework
 - ✅ **TypeScript** - Type-safe code
 - ✅ **TypeORM** - Powerful ORM with migrations
 - ✅ **PostgreSQL** - Reliable relational database
@@ -31,7 +32,7 @@ src/
 ├── routes/              # API routes
 │   ├── index.ts
 │   └── userRoutes.ts
-├── middlewares/         # Express middlewares
+├── middlewares/         # Fastify middlewares/hooks
 │   └── errorHandler.ts
 ├── migrations/          # Database migrations
 │   └── [timestamp]-CreateUserTable.ts
@@ -278,7 +279,7 @@ This project follows a **NestJS-inspired modular architecture**:
 
 - **Runtime**: Node.js 18 Alpine
 - **Language**: TypeScript 5.3
-- **Framework**: Express.js 4.18
+- **Framework**: Fastify 4.x
 - **ORM**: TypeORM 0.3
 - **Database**: PostgreSQL 15
 - **Containerization**: Docker & Docker Compose
