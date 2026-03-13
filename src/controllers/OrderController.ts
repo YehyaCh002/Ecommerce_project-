@@ -1,79 +1,79 @@
-import { Request, Response, NextFunction } from 'express';
+import { FastifyRequest, FastifyReply } from 'fastify';
 import { OrderService } from '../services/OrderService';
 import { OrderStatus } from '../entities/Order';
 
-interface AuthRequest extends Request {
+type AuthRequest = FastifyRequest & {
   userId?: string;
   userRole?: string;
-}
+};
 
 export class OrderController {
   private orderService = new OrderService();
 
   createOrder = async (
     req: AuthRequest,
-    res: Response,
-    next: NextFunction
+    res: FastifyReply
   ): Promise<void> => {
     try {
-      const userId = req.userId || req.body.userId;
+      const body = req.body as any;
+      const userId = req.userId || body.userId;
       if (!userId) {
-        res.status(401).json({
+        res.status(401).send({
           success: false,
           message: 'User ID required',
         });
         return;
       }
 
-      const { shippingAddress, paymentMethod, notes } = req.body;
+      const { shippingAddress, paymentMethod, notes } = body;
       const order = await this.orderService.createOrderFromCart(
         userId,
         shippingAddress,
         paymentMethod,
         notes
       );
-      res.status(201).json({
+      res.status(201).send({
         success: true,
         data: order,
       });
     } catch (error) {
-      next(error);
+      throw error;
     }
   };
 
   getOrderById = async (
-    req: Request,
-    res: Response,
-    next: NextFunction
+    req: FastifyRequest,
+    res: FastifyReply
   ): Promise<void> => {
     try {
-      const order = await this.orderService.getOrderById(parseInt(req.params.id));
+      const { id } = req.params as { id: string };
+      const order = await this.orderService.getOrderById(parseInt(id));
       if (!order) {
-        res.status(404).json({
+        res.status(404).send({
           success: false,
           message: 'Order not found',
         });
         return;
       }
 
-      res.status(200).json({
+      res.status(200).send({
         success: true,
         data: order,
       });
     } catch (error) {
-      next(error);
+      throw error;
     }
   };
 
   getUserOrders = async (
     req: AuthRequest,
-    res: Response,
-    next: NextFunction
+    res: FastifyReply
   ): Promise<void> => {
     try {
-      const userId = req.userId || req.body.userId;
+      const body = (req.body as any) || {};
+      const userId = req.userId || body.userId;
       if (!userId) {
-        res.status(401).json({
+        res.status(401).send({
           success: false,
           message: 'User ID required',
         });
@@ -81,25 +81,25 @@ export class OrderController {
       }
 
       const orders = await this.orderService.getOrdersByUserId(userId);
-      res.status(200).json({
+      res.status(200).send({
         success: true,
         data: orders,
         count: orders.length,
       });
     } catch (error) {
-      next(error);
+      throw error;
     }
   };
 
   getAllOrders = async (
     req: AuthRequest,
-    res: Response,
-    next: NextFunction
+    res: FastifyReply
   ): Promise<void> => {
     try {
-      const userRole = req.userRole || req.body.userRole;
+      const body = (req.body as any) || {};
+      const userRole = req.userRole || body.userRole;
       if (userRole !== 'admin') {
-        res.status(403).json({
+        res.status(403).send({
           success: false,
           message: 'Admin access required',
         });
@@ -107,83 +107,85 @@ export class OrderController {
       }
 
       const orders = await this.orderService.getAllOrders();
-      res.status(200).json({
+      res.status(200).send({
         success: true,
         data: orders,
         count: orders.length,
       });
     } catch (error) {
-      next(error);
+      throw error;
     }
   };
 
   updateOrderStatus = async (
     req: AuthRequest,
-    res: Response,
-    next: NextFunction
+    res: FastifyReply
   ): Promise<void> => {
     try {
-      const userRole = req.userRole || req.body.userRole;
+      const body = (req.body as any) || {};
+      const userRole = req.userRole || body.userRole;
       if (userRole !== 'admin') {
-        res.status(403).json({
+        res.status(403).send({
           success: false,
           message: 'Admin access required',
         });
         return;
       }
 
-      const { status } = req.body;
+      const { status } = body;
       if (!Object.values(OrderStatus).includes(status)) {
-        res.status(400).json({
+        res.status(400).send({
           success: false,
           message: 'Invalid order status',
         });
         return;
       }
 
+      const { id } = req.params as { id: string };
       const order = await this.orderService.updateOrderStatus(
-        parseInt(req.params.id),
+        parseInt(id),
         status
       );
       if (!order) {
-        res.status(404).json({
+        res.status(404).send({
           success: false,
           message: 'Order not found',
         });
         return;
       }
 
-      res.status(200).json({
+      res.status(200).send({
         success: true,
         data: order,
       });
     } catch (error) {
-      next(error);
+      throw error;
     }
   };
 
   cancelOrder = async (
     req: AuthRequest,
-    res: Response,
-    next: NextFunction
+    res: FastifyReply
   ): Promise<void> => {
     try {
-      const userId = req.userId || req.body.userId;
+      const body = (req.body as any) || {};
+      const userId = req.userId || body.userId;
       if (!userId) {
-        res.status(401).json({
+        res.status(401).send({
           success: false,
           message: 'User ID required',
         });
         return;
       }
 
-      const order = await this.orderService.cancelOrder(parseInt(req.params.id), userId);
-      res.status(200).json({
+      const { id } = req.params as { id: string };
+      const order = await this.orderService.cancelOrder(parseInt(id), userId);
+      res.status(200).send({
         success: true,
         data: order,
       });
     } catch (error) {
-      next(error);
+      throw error;
     }
   };
 }

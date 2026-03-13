@@ -1,22 +1,25 @@
-import { Router } from 'express';
+import { FastifyInstance } from 'fastify';
 import { CartController } from '../controllers/CartController';
 import { authenticate } from '../middlewares/auth';
 import { validateCartItem } from '../middlewares/validation';
 
-const router = Router();
-const cartController = new CartController();
+export default async function cartRoutes(fastify: FastifyInstance) {
+  const cartController = new CartController();
 
-// All cart routes require authentication
-router.get('/', authenticate, cartController.getCart);
-router.get('/total', authenticate, cartController.getCartTotal);
-router.post(
-  '/items',
-  authenticate,
-  validateCartItem,
-  cartController.addItemToCart
-);
-router.put('/items/:itemId', authenticate, cartController.updateCartItem);
-router.delete('/items/:itemId', authenticate, cartController.removeItemFromCart);
-router.delete('/', authenticate, cartController.clearCart);
-
-export default router;
+  // All cart routes require authentication
+  fastify.get('/', { preHandler: [authenticate] }, (request, reply) => cartController.getCart(request, reply));
+  
+  fastify.get('/total', { preHandler: [authenticate] }, (request, reply) => cartController.getCartTotal(request, reply));
+  
+  fastify.post(
+    '/items',
+    { preHandler: [authenticate, validateCartItem] },
+    (request, reply) => cartController.addItemToCart(request, reply)
+  );
+  
+  fastify.put('/items/:itemId', { preHandler: [authenticate] }, (request, reply) => cartController.updateCartItem(request, reply));
+  
+  fastify.delete('/items/:itemId', { preHandler: [authenticate] }, (request, reply) => cartController.removeItemFromCart(request, reply));
+  
+  fastify.delete('/', { preHandler: [authenticate] }, (request, reply) => cartController.clearCart(request, reply));
+}

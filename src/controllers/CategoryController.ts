@@ -1,119 +1,115 @@
-import { Request, Response, NextFunction } from 'express';
+import { FastifyRequest, FastifyReply } from 'fastify';
 import { CategoryService } from '../services/CategoryService';
 
 export class CategoryController {
   private categoryService = new CategoryService();
 
   createCategory = async (
-    req: Request,
-    res: Response,
-    next: NextFunction
+    req: FastifyRequest,
+    res: FastifyReply
   ): Promise<void> => {
     try {
-      const category = await this.categoryService.createCategory(req.body);
-      res.status(201).json({
+      const category = await this.categoryService.createCategory(req.body as any);
+      res.status(201).send({
         success: true,
         data: category,
       });
     } catch (error) {
       if (error instanceof Error && error.message.includes('already exists')) {
-        res.status(409).json({
+        res.status(409).send({
           success: false,
           message: error.message,
         });
         return;
       }
-      next(error);
+      throw error;
     }
   };
 
   getAllCategories = async (
-    req: Request,
-    res: Response,
-    next: NextFunction
+    req: FastifyRequest,
+    res: FastifyReply
   ): Promise<void> => {
     try {
       const categories = await this.categoryService.getAllCategories();
-      res.status(200).json({
+      res.status(200).send({
         success: true,
         data: categories,
       });
     } catch (error) {
-      next(error);
+      throw error;
     }
   };
 
   getCategoryById = async (
-    req: Request,
-    res: Response,
-    next: NextFunction
+    req: FastifyRequest,
+    res: FastifyReply
   ): Promise<void> => {
     try {
-      const category = await this.categoryService.getCategoryById(
-        req.params.id
-      );
+      const { id } = req.params as { id: string };
+      const category = await this.categoryService.getCategoryById(id);
       if (!category) {
-        res.status(404).json({
+        res.status(404).send({
           success: false,
           message: 'Category not found',
         });
         return;
       }
-      res.status(200).json({
+      res.status(200).send({
         success: true,
         data: category,
       });
     } catch (error) {
-      next(error);
+      throw error;
     }
   };
 
   updateCategory = async (
-    req: Request,
-    res: Response,
-    next: NextFunction
+    req: FastifyRequest,
+    res: FastifyReply
   ): Promise<void> => {
     try {
+      const { id } = req.params as { id: string };
       const category = await this.categoryService.updateCategory(
-        req.params.id,
-        req.body
+        id,
+        req.body as any
       );
       if (!category) {
-        res.status(404).json({
+        res.status(404).send({
           success: false,
           message: 'Category not found',
         });
         return;
       }
-      res.status(200).json({
+      res.status(200).send({
         success: true,
         data: category,
       });
     } catch (error) {
-      next(error);
+      throw error;
     }
   };
 
   deleteCategory = async (
-    req: Request,
-    res: Response,
-    next: NextFunction
+    req: FastifyRequest,
+    res: FastifyReply
   ): Promise<void> => {
     try {
-      const deleted = await this.categoryService.deleteCategory(req.params.id);
+      const { id } = req.params as { id: string };
+      const deleted = await this.categoryService.deleteCategory(id);
       if (!deleted) {
-        res.status(404).json({
+        res.status(404).send({
           success: false,
           message: 'Category not found',
         });
         return;
       }
-      res.status(200).json({
+      res.status(200).send({
         success: true,
         message: 'Category deleted successfully',
       });
     } catch (error) {
-      next(error);
+      throw error;
     }
   };
 }

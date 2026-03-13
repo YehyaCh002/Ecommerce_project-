@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from 'express';
+import { FastifyRequest, FastifyReply } from 'fastify';
 
 // Map error message patterns to appropriate HTTP status codes
 const resolveStatus = (message: string): number => {
@@ -12,20 +12,19 @@ const resolveStatus = (message: string): number => {
 };
 
 export const errorHandler = (
-  err: Error,
-  req: Request,
-  res: Response,
-  next: NextFunction
+  error: Error,
+  request: FastifyRequest,
+  reply: FastifyReply
 ) => {
-  const status = resolveStatus(err.message);
+  const status = resolveStatus(error.message);
 
   if (status === 500) {
-    console.error(err.stack);
+    console.error(error.stack);
   }
 
-  res.status(status).json({
+  reply.status(status).send({
     success: false,
-    message: status === 500 ? 'Internal Server Error' : err.message,
-    error: process.env.NODE_ENV === 'development' && status === 500 ? err.message : undefined,
+    message: status === 500 ? 'Internal Server Error' : error.message,
+    error: process.env.NODE_ENV === 'development' && status === 500 ? error.message : undefined,
   });
 };

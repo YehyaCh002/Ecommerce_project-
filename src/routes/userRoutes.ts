@@ -1,13 +1,12 @@
-import { Router } from 'express';
+import { FastifyInstance } from 'fastify';
 import { UserController } from '../controllers/UserController';
 
-const router = Router();
-const userController = new UserController();
+export default async function userRoutes(fastify: FastifyInstance) {
+  const userController = new UserController();
 
-router.get('/', (req, res) => userController.getAllUsers(req, res));
-router.get('/:id', (req, res) => userController.getUserById(req, res));
-router.post('/', (req, res) => userController.createUser(req, res));
-router.put('/:id', (req, res) => userController.updateUser(req, res));
-router.delete('/:id', (req, res) => userController.deleteUser(req, res));
-
-export default router;
+  fastify.get('/', (request, reply) => userController.getAllUsers(request, reply));
+  fastify.get('/:id', (request, reply) => userController.getUserById(request, reply));
+  fastify.post('/', (request, reply) => userController.createUser(request, reply));
+  fastify.put('/:id', (request, reply) => userController.updateUser(request, reply));
+  fastify.delete('/:id', (request, reply) => userController.deleteUser(request, reply));
+}

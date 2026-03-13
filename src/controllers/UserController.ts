@@ -1,4 +1,4 @@
-import { Request, Response } from 'express';
+import { FastifyRequest, FastifyReply } from 'fastify';
 import { UserService } from '../services/UserService';
 
 export class UserController {
@@ -8,15 +8,15 @@ export class UserController {
     this.userService = new UserService();
   }
 
-  async getAllUsers(req: Request, res: Response): Promise<void> {
+  async getAllUsers(req: FastifyRequest, res: FastifyReply): Promise<void> {
     try {
       const users = await this.userService.getAllUsers();
-      res.json({
+      res.send({
         success: true,
         data: users,
       });
     } catch (error) {
-      res.status(500).json({
+      res.status(500).send({
         success: false,
         message: 'Error fetching users',
         error: error instanceof Error ? error.message : 'Unknown error',
@@ -24,25 +24,25 @@ export class UserController {
     }
   }
 
-  async getUserById(req: Request, res: Response): Promise<void> {
+  async getUserById(req: FastifyRequest, res: FastifyReply): Promise<void> {
     try {
-      const { id } = req.params;
+      const { id } = req.params as { id: string };
       const user = await this.userService.getUserById(id);
 
       if (!user) {
-        res.status(404).json({
+        res.status(404).send({
           success: false,
           message: 'User not found',
         });
         return;
       }
 
-      res.json({
+      res.send({
         success: true,
         data: user,
       });
     } catch (error) {
-      res.status(500).json({
+      res.status(500).send({
         success: false,
         message: 'Error fetching user',
         error: error instanceof Error ? error.message : 'Unknown error',
@@ -50,17 +50,17 @@ export class UserController {
     }
   }
 
-  async createUser(req: Request, res: Response): Promise<void> {
+  async createUser(req: FastifyRequest, res: FastifyReply): Promise<void> {
     try {
-      const userData = req.body;
+      const userData = req.body as any;
       const user = await this.userService.createUser(userData);
 
-      res.status(201).json({
+      res.status(201).send({
         success: true,
         data: user,
       });
     } catch (error) {
-      res.status(500).json({
+      res.status(500).send({
         success: false,
         message: 'Error creating user',
         error: error instanceof Error ? error.message : 'Unknown error',
@@ -68,26 +68,26 @@ export class UserController {
     }
   }
 
-  async updateUser(req: Request, res: Response): Promise<void> {
+  async updateUser(req: FastifyRequest, res: FastifyReply): Promise<void> {
     try {
-      const { id } = req.params;
-      const userData = req.body;
+      const { id } = req.params as { id: string };
+      const userData = req.body as any;
       const user = await this.userService.updateUser(id, userData);
 
       if (!user) {
-        res.status(404).json({
+        res.status(404).send({
           success: false,
           message: 'User not found',
         });
         return;
       }
 
-      res.json({
+      res.send({
         success: true,
         data: user,
       });
     } catch (error) {
-      res.status(500).json({
+      res.status(500).send({
         success: false,
         message: 'Error updating user',
         error: error instanceof Error ? error.message : 'Unknown error',
@@ -95,25 +95,25 @@ export class UserController {
     }
   }
 
-  async deleteUser(req: Request, res: Response): Promise<void> {
+  async deleteUser(req: FastifyRequest, res: FastifyReply): Promise<void> {
     try {
-      const { id } = req.params;
+      const { id } = req.params as { id: string };
       const deleted = await this.userService.deleteUser(id);
 
       if (!deleted) {
-        res.status(404).json({
+        res.status(404).send({
           success: false,
           message: 'User not found',
         });
         return;
       }
 
-      res.json({
+      res.send({
         success: true,
         message: 'User deleted successfully',
       });
     } catch (error) {
-      res.status(500).json({
+      res.status(500).send({
         success: false,
         message: 'Error deleting user',
         error: error instanceof Error ? error.message : 'Unknown error',

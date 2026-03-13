@@ -1,27 +1,48 @@
-import { Router } from 'express';
+import { FastifyInstance } from 'fastify';
 import { OrderController } from '../controllers/OrderController';
 import { authenticate, requireAdmin } from '../middlewares/auth';
 import { validateOrder } from '../middlewares/validation';
 
-const router = Router();
-const orderController = new OrderController();
-router.get('/test', (req, res) => {
-  res.json({ message: 'Test route working!' });
-});
-console.log('🔥 Order routes loaded');
-// Customer routes
-router.post('/', authenticate, validateOrder, orderController.createOrder);
-router.get('/my-orders', authenticate, orderController.getUserOrders);
-router.get('/:id', orderController.getOrderById);
-router.post('/:id/cancel', authenticate, orderController.cancelOrder);
+export default async function orderRoutes(fastify: FastifyInstance) {
+  const orderController = new OrderController();
 
-// Admin routes
-router.get('/', authenticate, requireAdmin, orderController.getAllOrders);
-router.patch(
-  '/:id/status',
-  authenticate,
-  requireAdmin,
-  orderController.updateOrderStatus
-);
+  fastify.get('/test', async (request, reply) => {
+    return { message: 'Test route working!' };
+  });
 
-export default router;
+  console.log('🔥 Order routes loaded');
+
+  // Customer routes
+  fastify.post(
+    '/',
+    { preHandler: [authenticate, validateOrder] },
+    (request, reply) => orderController.createOrder(request, reply)
+  );
+
+  fastify.get(
+    '/my-orders',
+    { preHandler: [authenticate] },
+    (request, reply) => orderController.getUserOrders(request, reply)
+  );
+
+  fastify.get('/:id', (request, reply) => orderController.getOrderById(request, reply));
+
+  fastify.post(
+    '/:id/cancel',
+    { preHandler: [authenticate] },
+    (request, reply) => orderController.cancelOrder(request, reply)
+  );
+
+  // Admin routes
+  fastify.get(
+    '/',
+    { preHandler: [authenticate, requireAdmin] },
+    (request, reply) => orderController.getAllOrders(request, reply)
+  );
+
+  fastify.patch(
+    '/:id/status',
+    { preHandler: [authenticate, requireAdmin] },
+    (request, reply) => orderController.updateOrderStatus(request, reply)
+  );
+}

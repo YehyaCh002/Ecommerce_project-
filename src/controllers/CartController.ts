@@ -1,22 +1,22 @@
-import { Request, Response, NextFunction } from 'express';
+import { FastifyRequest, FastifyReply } from 'fastify';
 import { CartService } from '../services/CartService';
 
-interface AuthRequest extends Request {
+type AuthRequest = FastifyRequest & {
   userId?: string;
-}
+};
 
 export class CartController {
   private cartService = new CartService();
 
   getCart = async (
     req: AuthRequest,
-    res: Response,
-    next: NextFunction
+    res: FastifyReply
   ): Promise<void> => {
     try {
-      const userId = req.userId || req.body.userId;
+      const body = (req.body as any) || {};
+      const userId = req.userId || body.userId;
       if (!userId) {
-        res.status(401).json({
+        res.status(401).send({
           success: false,
           message: 'User ID required',
         });
@@ -24,119 +24,121 @@ export class CartController {
       }
 
       const cart = await this.cartService.getCartByUserId(userId);
-      res.status(200).json({
+      res.status(200).send({
         success: true,
         data: cart,
       });
     } catch (error) {
-      next(error);
+      throw error;
     }
   };
 
   addItemToCart = async (
     req: AuthRequest,
-    res: Response,
-    next: NextFunction
+    res: FastifyReply
   ): Promise<void> => {
     try {
-      const userId = req.userId || req.body.userId;
+      const body = (req.body as any) || {};
+      const userId = req.userId || body.userId;
       if (!userId) {
-        res.status(401).json({
+        res.status(401).send({
           success: false,
           message: 'User ID required',
         });
         return;
       }
 
-      const { productId, quantity } = req.body;
+      const { productId, quantity } = body;
       const cart = await this.cartService.addItemToCart(
         userId,
         productId,
         quantity
       );
-      res.status(200).json({
+      res.status(200).send({
         success: true,
         data: cart,
       });
     } catch (error) {
       if (error instanceof Error && error.message.includes('not found')) {
-        res.status(404).json({
+        res.status(404).send({
           success: false,
           message: error.message,
         });
         return;
       }
-      next(error);
+      throw error;
     }
   };
 
   updateCartItem = async (
     req: AuthRequest,
-    res: Response,
-    next: NextFunction
+    res: FastifyReply
   ): Promise<void> => {
     try {
-      const userId = req.userId || req.body.userId;
+      const body = (req.body as any) || {};
+      const userId = req.userId || body.userId;
       if (!userId) {
-        res.status(401).json({
+        res.status(401).send({
           success: false,
           message: 'User ID required',
         });
         return;
       }
 
-      const { quantity } = req.body;
+      const { quantity } = body;
+      const { itemId } = req.params as { itemId: string };
       const cart = await this.cartService.updateCartItem(
         userId,
-        req.params.itemId,
+        itemId,
         quantity
       );
-      res.status(200).json({
+      res.status(200).send({
         success: true,
         data: cart,
       });
     } catch (error) {
-      next(error);
+      throw error;
     }
   };
 
   removeItemFromCart = async (
     req: AuthRequest,
-    res: Response,
-    next: NextFunction
+    res: FastifyReply
   ): Promise<void> => {
     try {
-      const userId = req.userId || req.body.userId;
+      const body = (req.body as any) || {};
+      const userId = req.userId || body.userId;
       if (!userId) {
-        res.status(401).json({
+        res.status(401).send({
           success: false,
           message: 'User ID required',
         });
         return;
       }
 
+      const { itemId } = req.params as { itemId: string };
       const cart = await this.cartService.removeItemFromCart(
         userId,
-        req.params.itemId
+        itemId
       );
-      res.status(200).json({
+      res.status(200).send({
         success: true,
         data: cart,
       });
     } catch (error) {
-      next(error);
+      throw error;
     }
   };
 
   clearCart = async (
     req: AuthRequest,
-    res: Response,
-    next: NextFunction
+    res: FastifyReply
   ): Promise<void> => {
     try {
-      const userId = req.userId || req.body.userId;
+      const body = (req.body as any) || {};
+      const userId = req.userId || body.userId;
       if (!userId) {
-        res.status(401).json({
+        res.status(401).send({
           success: false,
           message: 'User ID required',
         });
@@ -144,24 +146,24 @@ export class CartController {
       }
 
       await this.cartService.clearCart(userId);
-      res.status(200).json({
+      res.status(200).send({
         success: true,
         message: 'Cart cleared successfully',
       });
     } catch (error) {
-      next(error);
+      throw error;
     }
   };
 
   getCartTotal = async (
     req: AuthRequest,
-    res: Response,
-    next: NextFunction
+    res: FastifyReply
   ): Promise<void> => {
     try {
-      const userId = req.userId || req.body.userId;
+      const body = (req.body as any) || {};
+      const userId = req.userId || body.userId;
       if (!userId) {
-        res.status(401).json({
+        res.status(401).send({
           success: false,
           message: 'User ID required',
         });
@@ -169,12 +171,12 @@ export class CartController {
       }
 
       const total = await this.cartService.getCartTotal(userId);
-      res.status(200).json({
+      res.status(200).send({
         success: true,
         data: { total },
       });
     } catch (error) {
-      next(error);
+      throw error;
     }
   };
 }

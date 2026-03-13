@@ -1,64 +1,62 @@
 import 'reflect-metadata';
-import express, { Request, Response } from 'express';
-import cors from 'cors';
+import Fastify, { FastifyRequest, FastifyReply } from 'fastify';
+import cors from '@fastify/cors';
 import dotenv from 'dotenv';
-import orderRoutes from './routes/orderRoutes';
-import userRoutes from './routes/userRoutes';
-import productRoutes from './routes/productRoutes';
-import categoryRoutes from './routes/categoryRoutes';
-import cartRoutes from './routes/cartRoutes';
+import apiRoutes from './routes';
 import { AppDataSource } from './config/data-source';
 import { errorHandler } from './middlewares/errorHandler';
 import { Logger } from './utils/logger';
 
 dotenv.config();
 
-const app = express();
-const PORT = process.env.PORT || 3000;
+const app = Fastify({
+  logger: false // You can enable fastify's built in logger if needed, but keeping console logger for now to match interface.
+});
+
+const PORT = parseInt(process.env.PORT || '3000', 10);
+
 // =====================
-// Middleware
+// Middleware Plugins
 // =====================
-app.use(cors());
-app.use(express.json());
+app.register(cors);
 
 // =====================
 // Basic Routes
 // =====================
-app.get('/', (req: Request, res: Response) => {
-  res.json({
-    message: 'E-commerce API with Express, TypeScript, PostgreSQL, and TypeORM',
+app.get('/', async (request: FastifyRequest, reply: FastifyReply) => {
+  return {
+    message: 'E-commerce API with Fastify, TypeScript, PostgreSQL, and TypeORM',
     status: 'running',
-  });
+  };
 });
 
-app.get('/health', async (req: Request, res: Response) => {
+app.get('/health', async (request: FastifyRequest, reply: FastifyReply) => {
   try {
     const isConnected = AppDataSource.isInitialized;
 
-    res.json({
+    return {
       status: 'healthy',
       database: isConnected ? 'connected' : 'disconnected',
       timestamp: new Date().toISOString(),
-    });
+    };
   } catch (error) {
-    res.status(500).json({
+    reply.status(500);
+    return {
       status: 'unhealthy',
       error: error instanceof Error ? error.message : 'Unknown error',
-    });
+    };
   }
 });
 
-
-app.use('/orders', orderRoutes);
-app.use('/users', userRoutes);
-app.use('/products', productRoutes);
-app.use('/categories', categoryRoutes);
-app.use('/cart', cartRoutes);
+// =====================
+// Route Plugins Integration
+// =====================
+app.register(apiRoutes);
 
 // =====================
-// Error Handler (MUST be after routes)
+// Error Handler
 // =====================
-app.use(errorHandler);
+app.setErrorHandler(errorHandler);
 
 // =====================
 // Initialize Database & Start Server
@@ -67,8 +65,12 @@ AppDataSource.initialize()
   .then(() => {
     Logger.info('Database connection established successfully');
 
-    app.listen(PORT, () => {
-      Logger.info(`Server is running on port ${PORT}`);
+    app.listen({ port: PORT, host: '0.0.0.0' }, (err, address) => {
+      if (err) {
+        Logger.error('Error starting server:', err);
+        process.exit(1);
+      }
+      Logger.info(`Server is running at ${address}`);
     });
   })
   .catch((error) => {
@@ -86,6 +88,7 @@ process.on('SIGTERM', async () => {
     await AppDataSource.destroy();
     Logger.info('Database connection closed');
   }
-
+  
+  await app.close();
   process.exit(0);
 });

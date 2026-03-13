@@ -1,14 +1,13 @@
-import { Request, Response, NextFunction } from 'express';
+import { FastifyRequest, FastifyReply } from 'fastify';
 
-export const validateProduct = (
-  req: Request,
-  res: Response,
-  next: NextFunction
-): void => {
-  const { name, price, stock } = req.body;
+export const validateProduct = async (
+  req: FastifyRequest,
+  res: FastifyReply
+): Promise<void> => {
+  const { name, price, stock } = req.body as any;
 
   if (!name || typeof name !== 'string' || name.trim().length === 0) {
-    res.status(400).json({
+    res.status(400).send({
       success: false,
       message: 'Valid product name is required',
     });
@@ -16,7 +15,7 @@ export const validateProduct = (
   }
 
   if (price !== undefined && (typeof price !== 'number' || price < 0)) {
-    res.status(400).json({
+    res.status(400).send({
       success: false,
       message: 'Price must be a positive number',
     });
@@ -24,43 +23,37 @@ export const validateProduct = (
   }
 
   if (stock !== undefined && (typeof stock !== 'number' || stock < 0)) {
-    res.status(400).json({
+    res.status(400).send({
       success: false,
       message: 'Stock must be a positive number',
     });
     return;
   }
-
-  next();
 };
 
-export const validateCategory = (
-  req: Request,
-  res: Response,
-  next: NextFunction
-): void => {
-  const { name } = req.body;
+export const validateCategory = async (
+  req: FastifyRequest,
+  res: FastifyReply
+): Promise<void> => {
+  const { name } = req.body as any;
 
   if (!name || typeof name !== 'string' || name.trim().length === 0) {
-    res.status(400).json({
+    res.status(400).send({
       success: false,
       message: 'Valid category name is required',
     });
     return;
   }
-
-  next();
 };
 
-export const validateCartItem = (
-  req: Request,
-  res: Response,
-  next: NextFunction
-): void => {
-  const { productId, quantity } = req.body;
+export const validateCartItem = async (
+  req: FastifyRequest,
+  res: FastifyReply
+): Promise<void> => {
+  const { productId, quantity } = req.body as any;
 
   if (!productId || typeof productId !== 'string') {
-    res.status(400).json({
+    res.status(400).send({
       success: false,
       message: 'Valid product ID is required',
     });
@@ -68,29 +61,26 @@ export const validateCartItem = (
   }
 
   if (!quantity || typeof quantity !== 'number' || quantity < 1) {
-    res.status(400).json({
+    res.status(400).send({
       success: false,
       message: 'Quantity must be at least 1',
     });
     return;
   }
-
-  next();
 };
 
-export const validateOrder = (
-  req: Request,
-  res: Response,
-  next: NextFunction
-): void => {
-  const { shippingAddress, paymentMethod } = req.body;
+export const validateOrder = async (
+  req: FastifyRequest,
+  res: FastifyReply
+): Promise<void> => {
+  const { shippingAddress, paymentMethod } = req.body as any;
 
   if (
     !shippingAddress ||
     typeof shippingAddress !== 'string' ||
     shippingAddress.trim().length === 0
   ) {
-    res.status(400).json({
+    res.status(400).send({
       success: false,
       message: 'Valid shipping address is required',
     });
@@ -102,12 +92,10 @@ export const validateOrder = (
     typeof paymentMethod !== 'string' ||
     paymentMethod.trim().length === 0
   ) {
-    res.status(400).json({
+    res.status(400).send({
       success: false,
       message: 'Valid payment method is required',
     });
     return;
   }
-
-  next();
 };
