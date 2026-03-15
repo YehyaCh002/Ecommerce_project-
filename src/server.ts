@@ -63,7 +63,7 @@ app.setErrorHandler(errorHandler);
 // =====================
 AppDataSource.initialize()
   .then(() => {
-    Logger.info('Database connection established successfully');
+    Logger.info('Database connection successfully');
 
     app.listen({ port: PORT, host: '0.0.0.0' }, (err, address) => {
       if (err) {
@@ -88,7 +88,7 @@ process.on('SIGTERM', async () => {
     await AppDataSource.destroy();
     Logger.info('Database connection closed');
   }
-  
+
   await app.close();
   process.exit(0);
 });
