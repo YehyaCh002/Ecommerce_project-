@@ -1,7 +1,7 @@
 import { FastifyInstance } from 'fastify';
 import { ProductController } from '../controllers/ProductController';
 import { authenticate, requireAdmin } from '../middlewares/auth';
-import { validateProduct } from '../middlewares/validation';
+import { createProductSchema, updateProductSchema } from '../schemas/productSchema';
 
 export default async function productRoutes(fastify: FastifyInstance) {
   const productController = new ProductController();
@@ -13,13 +13,19 @@ export default async function productRoutes(fastify: FastifyInstance) {
   // Admin routes
   fastify.post(
     '/',
-    { preHandler: [authenticate, requireAdmin, validateProduct] },
+    { 
+      preHandler: [authenticate, requireAdmin],
+      schema: createProductSchema
+    },
     (request, reply) => productController.createProduct(request, reply)
   );
 
   fastify.put(
     '/:id',
-    { preHandler: [authenticate, requireAdmin, validateProduct] },
+    { 
+      preHandler: [authenticate, requireAdmin],
+      schema: updateProductSchema
+    },
     (request, reply) => productController.updateProduct(request, reply)
   );
 

@@ -1,7 +1,7 @@
 import { FastifyInstance } from 'fastify';
 import { CategoryController } from '../controllers/CategoryController';
 import { authenticate, requireAdmin } from '../middlewares/auth';
-import { validateCategory } from '../middlewares/validation';
+import { categorySchema } from '../schemas/categorySchema';
 
 export default async function categoryRoutes(fastify: FastifyInstance) {
   const categoryController = new CategoryController();
@@ -13,13 +13,19 @@ export default async function categoryRoutes(fastify: FastifyInstance) {
   // Admin routes
   fastify.post(
     '/',
-    { preHandler: [authenticate, requireAdmin, validateCategory] },
+    { 
+      preHandler: [authenticate, requireAdmin],
+      schema: categorySchema
+    },
     (request, reply) => categoryController.createCategory(request, reply)
   );
 
   fastify.put(
     '/:id',
-    { preHandler: [authenticate, requireAdmin, validateCategory] },
+    { 
+      preHandler: [authenticate, requireAdmin],
+      schema: categorySchema
+    },
     (request, reply) => categoryController.updateCategory(request, reply)
   );
 

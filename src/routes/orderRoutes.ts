@@ -1,7 +1,7 @@
 import { FastifyInstance } from 'fastify';
 import { OrderController } from '../controllers/OrderController';
 import { authenticate, requireAdmin } from '../middlewares/auth';
-import { validateOrder } from '../middlewares/validation';
+import { createOrderSchema } from '../schemas/orderSchema';
 
 export default async function orderRoutes(fastify: FastifyInstance) {
   const orderController = new OrderController();
@@ -10,12 +10,13 @@ export default async function orderRoutes(fastify: FastifyInstance) {
     return { message: 'Test route working!' };
   });
 
-  console.log('🔥 Order routes loaded');
-
   // Customer routes
   fastify.post(
     '/',
-    { preHandler: [authenticate, validateOrder] },
+    { 
+      preHandler: [authenticate],
+      schema: createOrderSchema
+    },
     (request, reply) => orderController.createOrder(request, reply)
   );
 

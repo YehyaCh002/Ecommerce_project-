@@ -1,7 +1,7 @@
 import { FastifyInstance } from 'fastify';
 import { CartController } from '../controllers/CartController';
 import { authenticate } from '../middlewares/auth';
-import { validateCartItem } from '../middlewares/validation';
+import { cartItemSchema } from '../schemas/cartSchema';
 
 export default async function cartRoutes(fastify: FastifyInstance) {
   const cartController = new CartController();
@@ -13,7 +13,10 @@ export default async function cartRoutes(fastify: FastifyInstance) {
   
   fastify.post(
     '/items',
-    { preHandler: [authenticate, validateCartItem] },
+    { 
+      preHandler: [authenticate],
+      schema: cartItemSchema
+    },
     (request, reply) => cartController.addItemToCart(request, reply)
   );
   
