@@ -1,0 +1,210 @@
+import { FastifyInstance } from 'fastify';
+import { setupTest, sendRequest, sendAdminRequest } from './test-utils';
+
+// ─── Mock the entire ProductService to avoid TypeORM / DB dependency ──────────
+const mockProductService = {
+  getAllProducts: jest.fn(),
+  getProductById: jest.fn(),
+  createProduct: jest.fn(),
+  updateProduct: jest.fn(),
+  deleteProduct: jest.fn(),
+  updateStock: jest.fn(),
+};
+
+jest.mock('../services/ProductService', () => ({
+  ProductService: jest.fn().mockImplementation(() => mockProductService),
+}));
+
+// ─── Mock data-source so AppDataSource.getRepository never runs ───────────────
+jest.mock('../config/data-source', () => ({
+  AppDataSource: {
+    getRepository: jest.fn(),
+    isInitialized: true,
+  },
+}));
+
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('Product Routes Integration Tests', () => {
+  let app: FastifyInstance;
+
+  beforeAll(async () => {
+    app = await setupTest();
+  });
+
+  afterAll(async () => {
+    await app.close();
+  });
+
+  // ============================
+  // GET /products
+  // ============================
+  describe('GET /products', () => {
+    it('should return 200 and a list of products', async () => {
+      const mockProducts = [
+        { id: '1', name: 'Product 1', price: 100, stock: 10 },
+        { id: '2', name: 'Product 2', price: 200, stock: 20 },
+      ];
+
+      mockProductService.getAllProducts.mockResolvedValueOnce(mockProducts);
+
+      const response = await sendRequest(app, {
+        method: 'GET',
+        url: '/products',
+      });
+
+      expect(response.status).toBe(200);
+      expect(response.body.success).toBe(true);
+      expect(response.body.data).toEqual(mockProducts);
+      expect(response.body.count).toBe(2);
+    });
+
+    it('should return 200 with an empty array when no products exist', async () => {
+      mockProductService.getAllProducts.mockResolvedValueOnce([]);
+
+      const response = await sendRequest(app, {
+        method: 'GET',
+        url: '/products',
+      });
+
+      expect(response.status).toBe(200);
+      expect(response.body.success).toBe(true);
+      expect(response.body.data).toEqual([]);
+      expect(response.body.count).toBe(0);
+    });
+  });
+
+  // ============================
+  // GET /products/:id
+  // ============================
+  describe('GET /products/:id', () => {
+    it('should return 200 and the product when it exists', async () => {
+      const mockProduct = { id: 'abc-123', name: 'Existing Product', price: 99 };
+      mockProductService.getProductById.mockResolvedValueOnce(mockProduct);
+
+      const response = await sendRequest(app, {
+        method: 'GET',
+        url: '/products/abc-123',
+      });
+
+      expect(response.status).toBe(200);
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.id).toBe('abc-123');
+    });
+
+    it('should return 404 when the product does not exist', async () => {
+      mockProductService.getProductById.mockResolvedValueOnce(null);
+
+      const response = await sendRequest(app, {
+        method: 'GET',
+        url: '/products/non-existent-id',
+      });
+
+      expect(response.status).toBe(404);
+      expect(response.body.success).toBe(false);
+      expect(response.body.message).toBe('Product not found');
+    });
+  });
+
+  // ============================
+  // POST /products  (admin-only)
+  // ============================
+  describe('POST /products', () => {
+    const validProduct = {
+      name: 'New Product',
+      price: 150,
+      stock: 50,
+      description: 'A great product',
+    };
+
+    it('should return 201 when admin sends valid product data', async () => {
+      mockProductService.createProduct.mockResolvedValueOnce({ id: '123', ...validProduct });
+
+      const response = await sendAdminRequest(app, {
+        method: 'POST',
+        url: '/products',
+        payload: validProduct,
+      });
+
+      expect(response.status).toBe(201);
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.id).toBe('123');
+      expect(response.body.data.name).toBe(validProduct.name);
+    });
+
+    it('should return 401 when no auth headers are provided', async () => {
+      const response = await sendRequest(app, {
+        method: 'POST',
+        url: '/products',
+        payload: validProduct,
+      });
+
+      expect(response.status).toBe(401);
+      expect(response.body.message).toMatch(/Authentication required/);
+    });
+
+    it('should return 400 when user-id header is not a valid UUID', async () => {
+      const response = await sendRequest(app, {
+        method: 'POST',
+        url: '/products',
+        payload: validProduct,
+        headers: {
+          'x-user-id': 'not-a-valid-uuid',
+          'x-user-role': 'admin',
+        },
+      });
+
+      expect(response.status).toBe(400);
+      expect(response.body.message).toMatch(/Invalid user ID format/);
+    });
+
+    it('should return 403 when a non-admin (customer) user calls the route', async () => {
+      const response = await sendRequest(app, {
+        method: 'POST',
+        url: '/products',
+        payload: validProduct,
+        headers: {
+          'x-user-id': '00000000-0000-0000-0000-000000000005',
+          'x-user-role': 'customer',
+        },
+      });
+
+      expect(response.status).toBe(403);
+      expect(response.body.message).toMatch(/Admin access required/);
+    });
+
+    it('should return 400 when required fields (price, stock) are missing — JSON Schema', async () => {
+      const response = await sendAdminRequest(app, {
+        method: 'POST',
+        url: '/products',
+        payload: { name: 'Oops' },
+      });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toBe('Bad Request');
+      expect(response.body.statusCode).toBe(400);
+    });
+
+    it('should return 400 when price is below minimum (0) — JSON Schema', async () => {
+      const response = await sendAdminRequest(app, {
+        method: 'POST',
+        url: '/products',
+        payload: { ...validProduct, price: -10 },
+      });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toBe('Bad Request');
+    });
+
+    it('should return 400 when stock is below minimum (0) — JSON Schema', async () => {
+      const response = await sendAdminRequest(app, {
+        method: 'POST',
+        url: '/products',
+        payload: { ...validProduct, stock: -5 },
+      });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toBe('Bad Request');
+    });
+  });
+});
