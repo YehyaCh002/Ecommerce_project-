@@ -21,13 +21,14 @@ FROM node:18-alpine AS production
 
 WORKDIR /app
 
-# Copy package files and install ALL dependencies (need TypeORM CLI)
-COPY package*.json ./
-COPY tsconfig.json ./
-RUN npm ci
+# Set NODE_ENV to production
+ENV NODE_ENV=production
 
-# Copy source files (needed for migration generation)
-COPY src ./src
+# Copy package files
+COPY package*.json ./
+
+# Install ONLY production dependencies
+RUN npm ci --only=production
 
 # Copy built files from builder stage
 COPY --from=builder /app/dist ./dist
@@ -40,4 +41,4 @@ USER nodejs
 
 EXPOSE 3000
 
-CMD ["node", "dist/index.js"]
+CMD ["node", "dist/server.js"]
