@@ -142,9 +142,12 @@ export class OrderController {
       }
 
       const { id } = req.params as { id: string };
+      const { note } = body;
       const order = await this.orderService.updateOrderStatus(
         parseInt(id),
-        status
+        status,
+        req.userId,
+        note
       );
       if (!order) {
         res.status(404).send({
@@ -183,6 +186,49 @@ export class OrderController {
       res.status(200).send({
         success: true,
         data: order,
+      });
+    } catch (error) {
+      throw error;
+    }
+  };
+
+  getOrderHistory = async (
+    req: AuthRequest,
+    res: FastifyReply
+  ): Promise<void> => {
+    try {
+      const { id } = req.params as { id: string };
+      const history = await this.orderService.getOrderHistory(parseInt(id));
+      res.status(200).send({
+        success: true,
+        data: history,
+      });
+    } catch (error) {
+      throw error;
+    }
+  };
+
+  logOrderAction = async (
+    req: AuthRequest,
+    res: FastifyReply
+  ): Promise<void> => {
+    try {
+      const { id } = req.params as { id: string };
+      const { action, details } = req.body as {
+        action: string;
+        details?: string;
+      };
+
+      const history = await this.orderService.logOrderAction(
+        parseInt(id),
+        action,
+        req.userId,
+        details
+      );
+
+      res.status(201).send({
+        success: true,
+        data: history,
       });
     } catch (error) {
       throw error;

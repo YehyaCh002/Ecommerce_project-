@@ -28,6 +28,12 @@ export default async function orderRoutes(fastify: FastifyInstance) {
 
   fastify.get('/:id', (request, reply) => orderController.getOrderById(request, reply));
 
+  fastify.get(
+    '/:id/history',
+    { preHandler: [authenticate] },
+    (request, reply) => orderController.getOrderHistory(request, reply)
+  );
+
   fastify.post(
     '/:id/cancel',
     { preHandler: [authenticate] },
@@ -45,5 +51,11 @@ export default async function orderRoutes(fastify: FastifyInstance) {
     '/:id/status',
     { preHandler: [authenticate, requireAdmin] },
     (request, reply) => orderController.updateOrderStatus(request, reply)
+  );
+
+  fastify.post(
+    '/:id/history',
+    { preHandler: [authenticate, requireAdmin] },
+    (request, reply) => orderController.logOrderAction(request, reply)
   );
 }

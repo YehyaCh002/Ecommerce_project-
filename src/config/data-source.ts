@@ -22,6 +22,10 @@ export const AppDataSource = new DataSource({
   synchronize: false,
   logging: process.env.NODE_ENV === 'development',
   entities: [User, Product, Category, Order, OrderItem, Cart, CartItem, Wilaya, OrderHistory],
-  migrations: ['dist/migrations/**/*.js'],
+  migrations: [
+    process.env.NODE_ENV === 'production' 
+      ? 'dist/migrations/**/*.js' 
+      : 'src/migrations/**/*.ts'
+  ],
   subscribers: [],
 });

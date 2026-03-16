@@ -33,6 +33,9 @@ export enum OrderSource {
   PHONE = 'Phone',
   OTHER = 'Other',
 }
+export enum order_imeline {
+
+}
 
 @Entity('orders')
 export class Order {

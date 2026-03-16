@@ -24,15 +24,18 @@ export class OrderHistory {
   @Column({
     type: 'varchar',
     length: 100,
-    nullable: true,
   })
-  oldStatus: string;
+  action: string; // e.g., 'Status Update', 'Order Printed', 'Message Sent'
 
   @Column({
     type: 'varchar',
     length: 100,
+    nullable: true,
   })
-  newStatus: string;
+  status: string; // The status related to this history entry (if any)
+
+  @Column({ type: 'text', nullable: true })
+  details: string; // Detailed message or context
 
   @ManyToOne(() => User, { nullable: true })
   @JoinColumn({ name: 'changedByUserId' })
@@ -40,9 +43,6 @@ export class OrderHistory {
 
   @Column({ type: 'uuid', nullable: true })
   changedByUserId: string;
-
-  @Column({ type: 'text', nullable: true })
-  note: string;
 
   @CreateDateColumn()
   timestamp: Date;

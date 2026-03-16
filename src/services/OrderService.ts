@@ -1,12 +1,14 @@
 import { AppDataSource } from '../config/data-source';
 import { Order, OrderStatus } from '../entities/Order';
 import { OrderItem } from '../entities/OrderItem';
+import { OrderHistory } from '../entities/OrderHistory';
 import { CartService } from './CartService';
 import { ProductService } from './ProductService';
 
 export class OrderService {
   private orderRepository = AppDataSource.getRepository(Order);
   private orderItemRepository = AppDataSource.getRepository(OrderItem);
+  private orderHistoryRepository = AppDataSource.getRepository(OrderHistory);
   private cartService = new CartService();
   private productService = new ProductService();
 
@@ -52,6 +54,15 @@ export class OrderService {
 
     const savedOrder = await this.orderRepository.save(order);
 
+    // Initial history entry
+    await this.addOrderHistory(
+      savedOrder.id,
+      'Order Created',
+      OrderStatus.EN_ATTENTE,
+      userId,
+      'Order was placed successfully.'
+    );
+
     // Create order items and decrease stock
     for (const cartItem of cart.cartItems) {
       const orderItem = this.orderItemRepository.create({
@@ -75,10 +86,27 @@ export class OrderService {
   }
 
   async getOrderById(id: number): Promise<Order | null> {
-    return await this.orderRepository.findOne({
+    const order = await this.orderRepository.findOne({
       where: { id },
-      relations: ['orderItems', 'orderItems.product', 'user', 'wilaya', 'assignedTo', 'history'],
+      relations: [
+        'orderItems',
+        'orderItems.product',
+        'user',
+        'wilaya',
+        'assignedTo',
+      ],
     });
+
+    if (order) {
+      // Fetch history separately to ensure ordering
+      order.history = await this.orderHistoryRepository.find({
+        where: { orderId: id },
+        order: { timestamp: 'ASC' },
+        relations: ['changedByUser'],
+      });
+    }
+
+    return order;
   }
 
   async getOrdersByUserId(userId: string): Promise<Order[]> {
@@ -96,12 +124,52 @@ export class OrderService {
     });
   }
 
+  async getOrderHistory(orderId: number): Promise<OrderHistory[]> {
+    return await this.orderHistoryRepository.find({
+      where: { orderId },
+      order: { timestamp: 'ASC' },
+      relations: ['changedByUser'],
+    });
+  }
+
   async updateOrderStatus(
     id: number,
-    status: OrderStatus
+    status: OrderStatus,
+    changedByUserId?: string,
+    details?: string
   ): Promise<Order | null> {
+    const order = await this.getOrderById(id);
+    if (!order) return null;
+
+    const oldStatus = order.status;
     await this.orderRepository.update(id, { status });
+
+    await this.addOrderHistory(
+      id,
+      'Status Update',
+      status,
+      changedByUserId,
+      details || `Status changed from ${oldStatus} to ${status}`
+    );
+
     return this.getOrderById(id);
+  }
+
+  async addOrderHistory(
+    orderId: number,
+    action: string,
+    status?: OrderStatus | string,
+    changedByUserId?: string,
+    details?: string
+  ): Promise<OrderHistory> {
+    const history = this.orderHistoryRepository.create({
+      orderId,
+      action,
+      status: status?.toString(),
+      changedByUserId,
+      details,
+    });
+    return await this.orderHistoryRepository.save(history);
   }
 
   async cancelOrder(id: number, userId: string): Promise<Order | null> {
@@ -135,6 +203,26 @@ export class OrderService {
       }
     }
 
-    return this.updateOrderStatus(id, OrderStatus.ANNULE);
+    return this.updateOrderStatus(id, OrderStatus.ANNULE, userId, 'Order cancelled by user');
+  }
+
+  async logOrderAction(
+    id: number,
+    action: string,
+    changedByUserId?: string,
+    details?: string
+  ): Promise<OrderHistory> {
+    const order = await this.getOrderById(id);
+    if (!order) {
+      throw new Error('Order not found');
+    }
+
+    return await this.addOrderHistory(
+      id,
+      action,
+      order.status,
+      changedByUserId,
+      details
+    );
   }
 }
