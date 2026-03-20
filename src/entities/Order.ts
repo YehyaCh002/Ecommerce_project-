@@ -9,6 +9,7 @@ import {
   OneToMany,
 } from 'typeorm';
 import { User } from './User';
+import { Customer } from './Customer';
 import { OrderItem } from './OrderItem';
 import { Wilaya } from './Wilaya';
 import { OrderHistory } from './OrderHistory';
@@ -33,9 +34,7 @@ export enum OrderSource {
   PHONE = 'Phone',
   OTHER = 'Other',
 }
-export enum order_imeline {
 
-}
 
 @Entity('orders')
 export class Order {
@@ -97,11 +96,15 @@ export class Order {
   @Column({ type: 'uuid', nullable: true })
   assignedToId: string;
 
-  // Original User/Customer (for backward compatibility)
-  @ManyToOne(() => User, (user) => user.orders, { onDelete: 'CASCADE', nullable: true })
-  @JoinColumn({ name: 'userId' })
-  user: User;
+  // Customer Link
+  @ManyToOne(() => Customer, (customer) => customer.orders, { nullable: true })
+  @JoinColumn({ name: 'customerId' })
+  customer: Customer;
 
+  @Column({ type: 'uuid', nullable: true })
+  customerId: string;
+
+  // For backward compatibility (Optional, can be removed once refactored)
   @Column({ type: 'uuid', nullable: true })
   userId: string;
 

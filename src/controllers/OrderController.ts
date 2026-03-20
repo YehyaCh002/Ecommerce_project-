@@ -41,6 +41,50 @@ export class OrderController {
     }
   };
 
+  createQuickOrder = async (
+    req: FastifyRequest,
+    res: FastifyReply
+  ): Promise<void> => {
+    try {
+      const { customerInfo, items, paymentMethod, notes } = req.body as any;
+
+      if (!customerInfo || !customerInfo.name || !customerInfo.phoneNumber) {
+        res.status(400).send({
+          success: false,
+          message: 'Customer name and phone number are required',
+        });
+        return;
+      }
+
+      if (!items || !Array.isArray(items) || items.length === 0) {
+        res.status(400).send({
+          success: false,
+          message: 'Order must contain at least one item',
+        });
+        return;
+      }
+
+      const order = await this.orderService.createGuestOrder(
+        customerInfo,
+        items,
+        paymentMethod,
+        notes
+      );
+
+      res.status(201).send({
+        success: true,
+        data: order,
+      });
+    } catch (error) {
+      res.status(400).send({
+        success: false,
+        message:
+          error instanceof Error ? error.message : 'Failed to create order',
+      });
+    }
+  };
+
+
   getOrderById = async (
     req: FastifyRequest,
     res: FastifyReply

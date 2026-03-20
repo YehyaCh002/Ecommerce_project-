@@ -20,6 +20,11 @@ export default async function orderRoutes(fastify: FastifyInstance) {
     (request, reply) => orderController.createOrder(request, reply)
   );
 
+  fastify.post(
+    '/quick-order',
+    (request, reply) => orderController.createQuickOrder(request, reply)
+  );
+
   fastify.get(
     '/my-orders',
     { preHandler: [authenticate] },

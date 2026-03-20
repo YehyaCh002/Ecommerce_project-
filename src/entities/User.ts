@@ -29,9 +29,6 @@ export class User {
   @Column({ type: 'varchar', length: 500, nullable: true })
   avatar: string;
 
-  @OneToMany(() => Order, (order) => order.user)
-  orders: Order[];
-
   @OneToMany(() => Order, (order) => order.assignedTo)
   assignedOrders: Order[];
 

@@ -9,6 +9,7 @@ import { Cart } from '../entities/Cart';
 import { CartItem } from '../entities/CartItem';
 import { Wilaya } from '../entities/Wilaya';
 import { OrderHistory } from '../entities/OrderHistory';
+import { Customer } from '../entities/Customer';
 
 dotenv.config();
 
@@ -21,7 +22,7 @@ export const AppDataSource = new DataSource({
   database: process.env.DB_NAME || 'ecommerce',
   synchronize: false,
   logging: process.env.NODE_ENV === 'development',
-  entities: [User, Product, Category, Order, OrderItem, Cart, CartItem, Wilaya, OrderHistory],
+  entities: [User, Product, Category, Order, OrderItem, Cart, CartItem, Wilaya, OrderHistory, Customer],
   migrations: [
     process.env.NODE_ENV === 'production' 
       ? 'dist/migrations/**/*.js' 
