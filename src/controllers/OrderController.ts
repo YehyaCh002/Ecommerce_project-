@@ -210,6 +210,42 @@ export class OrderController {
     }
   };
 
+  updateOrderPlatform = async (
+    req: AuthRequest,
+    res: FastifyReply
+  ): Promise<void> => {
+    try {
+      const { id } = req.params as { id: string };
+      const { platformId } = req.body as { platformId: string };
+
+      if (!platformId) {
+        res.status(400).send({
+          success: false,
+          message: 'Platform ID is required',
+        });
+        return;
+      }
+
+      const order = await this.orderService.updateOrderDeliveryPlatform(
+        parseInt(id),
+        platformId,
+        req.userId
+      );
+
+      res.status(200).send({
+        success: true,
+        data: order,
+      });
+    } catch (error) {
+      res.status(400).send({
+        success: false,
+        message:
+          error instanceof Error ? error.message : 'Failed to assign platform',
+      });
+    }
+  };
+   
+
   cancelOrder = async (
     req: AuthRequest,
     res: FastifyReply

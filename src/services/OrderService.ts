@@ -3,6 +3,7 @@ import { Order, OrderStatus } from '../entities/Order';
 import { OrderItem } from '../entities/OrderItem';
 import { OrderHistory } from '../entities/OrderHistory';
 import { Customer } from '../entities/Customer';
+import { DeliveryPlatform } from '../entities/DeliveryPlatform';
 import { CartService } from './CartService';
 import { ProductService } from './ProductService';
 
@@ -11,6 +12,7 @@ export class OrderService {
   private orderItemRepository = AppDataSource.getRepository(OrderItem);
   private orderHistoryRepository = AppDataSource.getRepository(OrderHistory);
   private customerRepository = AppDataSource.getRepository(Customer);
+  private platformRepository = AppDataSource.getRepository(DeliveryPlatform);
   private cartService = new CartService();
   private productService = new ProductService();
 
@@ -243,6 +245,32 @@ export class OrderService {
       status,
       changedByUserId,
       details || `Status changed from ${oldStatus} to ${status}`
+    );
+
+    return this.getOrderById(id);
+  }
+
+  async updateOrderDeliveryPlatform(
+    id: number,
+    platformId: string,
+    changedByUserId?: string
+  ): Promise<Order | null> {
+    const order = await this.getOrderById(id);
+    if (!order) return null;
+
+    const platform = await this.platformRepository.findOne({
+      where: { id: platformId },
+    });
+    if (!platform) throw new Error('Delivery platform not found');
+
+    await this.orderRepository.update(id, { deliveryPlatformId: platformId });
+
+    await this.addOrderHistory(
+      id,
+      'Delivery Platform Assigned',
+      order.status,
+      changedByUserId,
+      `Assigned to ${platform.name}`
     );
 
     return this.getOrderById(id);

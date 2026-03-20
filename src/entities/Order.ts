@@ -7,12 +7,14 @@ import {
   ManyToOne,
   JoinColumn,
   OneToMany,
+  AfterLoad,
 } from 'typeorm';
 import { User } from './User';
 import { Customer } from './Customer';
 import { OrderItem } from './OrderItem';
 import { Wilaya } from './Wilaya';
 import { OrderHistory } from './OrderHistory';
+import { DeliveryPlatform } from './DeliveryPlatform';
 
 export enum OrderStatus {
   EN_ATTENTE = 'En attente',
@@ -117,6 +119,27 @@ export class Order {
 
   @Column({ type: 'text', nullable: true })
   notes: string;
+
+  // Delivery Platform link
+  @ManyToOne(() => DeliveryPlatform, (platform) => platform.orders, {
+    nullable: true,
+  })
+  @JoinColumn({ name: 'deliveryPlatformId' })
+  deliveryPlatform: DeliveryPlatform;
+
+  @Column({ type: 'uuid', nullable: true })
+  deliveryPlatformId: string;
+
+  // Timers (calculated for the frontend)
+  elapsedMinutes: number;
+  counterColor: 'green' | 'red';
+
+  @AfterLoad()
+  calculateTimers() {
+    const diff = new Date().getTime() - this.createdAt.getTime();
+    this.elapsedMinutes = Math.floor(diff / 60000);
+    this.counterColor = this.elapsedMinutes <= 2 ? 'green' : 'red';
+  }
 
   // Relations
   @OneToMany(() => OrderItem, (orderItem) => orderItem.order, {

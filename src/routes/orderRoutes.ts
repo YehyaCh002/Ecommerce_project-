@@ -63,4 +63,10 @@ export default async function orderRoutes(fastify: FastifyInstance) {
     { preHandler: [authenticate, requireAdmin] },
     (request, reply) => orderController.logOrderAction(request, reply)
   );
+
+  fastify.patch(
+    '/:id/platform',
+    { preHandler: [authenticate, requireAdmin] },
+    (request, reply) => orderController.updateOrderPlatform(request, reply)
+  );
 }
