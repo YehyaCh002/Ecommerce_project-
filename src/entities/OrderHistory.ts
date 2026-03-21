@@ -9,6 +9,20 @@ import {
 import { Order, OrderStatus } from './Order';
 import { User } from './User';
 
+export enum OrderAction {
+  CREATED = 'Créé',
+  STATUS_UPDATED = 'Statut Mis à Jour',
+  PRINTED = 'Imprimé',
+  PREPARATION = 'En Préparation',
+  EXPEDITION = 'Expédié',
+  VERS_WILAYA = 'Vers Wilaya',
+  RECU_WILAYA = 'Reçu à Wilaya',
+  MESSAGE_SENT = 'Message Envoyé',
+  TRANSFER = 'Transfert',
+  CANCELLED = 'Annulé',
+  DELIVERY_ASSIGNED = 'Livraison Assignée',
+}
+
 @Entity('order_history')
 export class OrderHistory {
   @PrimaryGeneratedColumn()
@@ -22,17 +36,18 @@ export class OrderHistory {
   orderId: number;
 
   @Column({
-    type: 'varchar',
-    length: 100,
+    type: 'enum',
+    enum: OrderAction,
+    default: OrderAction.CREATED,
   })
-  action: string; // e.g., 'Status Update', 'Order Printed', 'Message Sent'
+  action: OrderAction;
 
   @Column({
-    type: 'varchar',
-    length: 100,
+    type: 'enum',
+    enum: OrderStatus,
     nullable: true,
   })
-  status: string; // The status related to this history entry (if any)
+  status: OrderStatus;
 
   @Column({ type: 'text', nullable: true })
   details: string; // Detailed message or context

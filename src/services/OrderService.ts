@@ -1,7 +1,7 @@
 import { AppDataSource } from '../config/data-source';
 import { Order, OrderStatus } from '../entities/Order';
 import { OrderItem } from '../entities/OrderItem';
-import { OrderHistory } from '../entities/OrderHistory';
+import { OrderHistory, OrderAction } from '../entities/OrderHistory';
 import { Customer } from '../entities/Customer';
 import { DeliveryPlatform } from '../entities/DeliveryPlatform';
 import { CartService } from './CartService';
@@ -62,7 +62,7 @@ export class OrderService {
     // Initial history entry
     await this.addOrderHistory(
       savedOrder.id,
-      'Order Created',
+      OrderAction.CREATED,
       OrderStatus.EN_ATTENTE,
       userId,
       'Order was placed successfully.'
@@ -158,7 +158,7 @@ export class OrderService {
     // 5. Initial history entry
     await this.addOrderHistory(
       savedOrder.id,
-      'Order Created (Guest Check-out)',
+      OrderAction.CREATED,
       OrderStatus.EN_ATTENTE,
       undefined,
       'Order was placed from landing page.'
@@ -241,7 +241,7 @@ export class OrderService {
 
     await this.addOrderHistory(
       id,
-      'Status Update',
+      OrderAction.STATUS_UPDATED,
       status,
       changedByUserId,
       details || `Status changed from ${oldStatus} to ${status}`
@@ -267,7 +267,7 @@ export class OrderService {
 
     await this.addOrderHistory(
       id,
-      'Delivery Platform Assigned',
+      OrderAction.DELIVERY_ASSIGNED,
       order.status,
       changedByUserId,
       `Assigned to ${platform.name}`
@@ -278,15 +278,15 @@ export class OrderService {
 
   async addOrderHistory(
     orderId: number,
-    action: string,
-    status?: OrderStatus | string,
+    action: OrderAction,
+    status?: OrderStatus,
     changedByUserId?: string,
     details?: string
   ): Promise<OrderHistory> {
     const history = this.orderHistoryRepository.create({
       orderId,
       action,
-      status: status?.toString(),
+      status,
       changedByUserId,
       details,
     });
@@ -329,7 +329,7 @@ export class OrderService {
 
   async logOrderAction(
     id: number,
-    action: string,
+    action: OrderAction,
     changedByUserId?: string,
     details?: string
   ): Promise<OrderHistory> {

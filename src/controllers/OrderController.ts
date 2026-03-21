@@ -1,6 +1,7 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { OrderService } from '../services/OrderService';
 import { OrderStatus } from '../entities/Order';
+import { OrderAction } from '../entities/OrderHistory';
 
 type AuthRequest = FastifyRequest & {
   userId?: string;
@@ -295,7 +296,7 @@ export class OrderController {
     try {
       const { id } = req.params as { id: string };
       const { action, details } = req.body as {
-        action: string;
+        action: OrderAction;
         details?: string;
       };
 
