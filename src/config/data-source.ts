@@ -14,6 +14,13 @@ import { DeliveryPlatform } from '../entities/DeliveryPlatform';
 
 dotenv.config();
 
+console.log('Connecting to:', {
+  host: process.env.DB_HOST || 'localhost',
+  port: process.env.DB_PORT || '5432',
+  user: process.env.DB_USER || 'postgres',
+  db: process.env.DB_NAME || 'ecommerce'
+});
+
 export const AppDataSource = new DataSource({
   type: 'postgres',
   host: process.env.DB_HOST || 'localhost',

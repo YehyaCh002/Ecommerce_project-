@@ -26,12 +26,14 @@ export class OrderController {
         return;
       }
 
-      const { shippingAddress, paymentMethod, notes } = body;
+      const { shippingAddress, paymentMethod, notes, remark, internalComment, shippingFee } = body;
       const order = await this.orderService.createOrderFromCart(
         userId,
         shippingAddress,
         paymentMethod,
-        notes
+        remark || notes,
+        internalComment,
+        shippingFee
       );
       res.status(201).send({
         success: true,
@@ -47,7 +49,7 @@ export class OrderController {
     res: FastifyReply
   ): Promise<void> => {
     try {
-      const { customerInfo, items, paymentMethod, notes } = req.body as any;
+      const { customerInfo, items, paymentMethod, notes, remark, internalComment, shippingFee } = req.body as any;
 
       if (!customerInfo || !customerInfo.name || !customerInfo.phoneNumber) {
         res.status(400).send({
@@ -69,7 +71,9 @@ export class OrderController {
         customerInfo,
         items,
         paymentMethod,
-        notes
+        remark || notes,
+        internalComment,
+        shippingFee
       );
 
       res.status(201).send({
@@ -156,6 +160,48 @@ export class OrderController {
         success: true,
         data: orders,
         count: orders.length,
+      });
+    } catch (error) {
+      throw error;
+    }
+  };
+
+  updateOrder = async (
+    req: AuthRequest,
+    res: FastifyReply
+  ): Promise<void> => {
+    try {
+      const body = (req.body as any) || {};
+      const userRole = req.userRole || body.userRole;
+      if (userRole !== 'admin') {
+        res.status(403).send({
+          success: false,
+          message: 'Admin access required',
+        });
+        return;
+      }
+
+      const { id } = req.params as { id: string };
+      const { updateData, note } = body;
+
+      const order = await this.orderService.updateOrder(
+        parseInt(id),
+        updateData,
+        req.userId,
+        note
+      );
+
+      if (!order) {
+        res.status(404).send({
+          success: false,
+          message: 'Order not found',
+        });
+        return;
+      }
+
+      res.status(200).send({
+        success: true,
+        data: order,
       });
     } catch (error) {
       throw error;

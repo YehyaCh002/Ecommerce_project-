@@ -1,7 +1,7 @@
 import { FastifyInstance } from 'fastify';
 import { OrderController } from '../controllers/OrderController';
 import { authenticate, requireAdmin } from '../middlewares/auth';
-import { createOrderSchema } from '../schemas/orderSchema';
+import { createOrderSchema, updateOrderSchema } from '../schemas/orderSchema';
 
 export default async function orderRoutes(fastify: FastifyInstance) {
   const orderController = new OrderController();
@@ -56,6 +56,15 @@ export default async function orderRoutes(fastify: FastifyInstance) {
     '/:id/status',
     { preHandler: [authenticate, requireAdmin] },
     (request, reply) => orderController.updateOrderStatus(request, reply)
+  );
+
+  fastify.put(
+    '/:id',
+    { 
+      preHandler: [authenticate, requireAdmin],
+      schema: updateOrderSchema
+    },
+    (request, reply) => orderController.updateOrder(request, reply)
   );
 
   fastify.post(

@@ -117,8 +117,6 @@ export class Order {
   @Column({ type: 'varchar', length: 255, nullable: true })
   paymentMethod: string;
 
-  @Column({ type: 'text', nullable: true })
-  notes: string;
 
   // Delivery Platform link
   @ManyToOne(() => DeliveryPlatform, (platform) => platform.orders, {
@@ -129,6 +127,30 @@ export class Order {
 
   @Column({ type: 'uuid', nullable: true })
   deliveryPlatformId: string;
+
+  @Column({ type: 'boolean', default: false })
+  isExchange: boolean;
+
+  @Column({ type: 'decimal', precision: 10, scale: 2, default: 0 })
+  exchangePrice: number;
+
+  @Column({ type: 'text', nullable: true })
+  productToCollect: string;
+
+  @Column({ type: 'boolean', default: false })
+  isFreeShipping: boolean;
+
+  @Column({ type: 'boolean', default: false })
+  hasInsurance: boolean;
+
+  @Column({ type: 'decimal', precision: 10, scale: 2, default: 0 })
+  shippingFee: number;
+
+  @Column({ type: 'text', nullable: true })
+  remark: string;
+
+  @Column({ type: 'text', nullable: true })
+  internalComment: string;
 
   // Timers (calculated for the frontend)
   elapsedMinutes: number;

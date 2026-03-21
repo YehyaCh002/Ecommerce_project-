@@ -20,7 +20,9 @@ export class OrderService {
     userId: string,
     shippingAddress: string,
     paymentMethod: string,
-    notes?: string
+    remark?: string,
+    internalComment?: string,
+    shippingFee: number = 0
   ): Promise<Order> {
     // Note: In the landing page context, this might be replaced by createGuestOrder
     const cart = await this.cartService.getCartByUserId(userId);
@@ -43,16 +45,21 @@ export class OrderService {
       return total + Number(item.product.price) * item.quantity;
     }, 0);
 
+    // Final total including shipping fee
+    const finalTotalPrice = totalPrice + Number(shippingFee);
+
     // Get user info for customer name and phone (you may need to adjust this)
     // For now, using placeholder values - you should fetch from user entity
     const order = this.orderRepository.create({
       userId,
       customerName: 'Customer', // TODO: Fetch from user entity
       phoneNumber: '0000000000', // TODO: Fetch from user entity
-      totalPrice,
+      totalPrice: finalTotalPrice,
       shippingAddress,
       paymentMethod,
-      notes,
+      remark,
+      internalComment,
+      shippingFee,
       status: OrderStatus.EN_ATTENTE,
       source: 'Website' as any,
     });
@@ -99,7 +106,9 @@ export class OrderService {
     },
     items: { productId: string; quantity: number }[],
     paymentMethod: string,
-    notes?: string
+    remark?: string,
+    internalComment?: string,
+    shippingFee: number = 0
   ): Promise<Order> {
     // 1. Find or Create Customer
     let customer = await this.customerRepository.findOne({
@@ -141,10 +150,12 @@ export class OrderService {
       customerId: customer.id,
       customerName: customer.name,
       phoneNumber: customer.phoneNumber,
-      totalPrice,
+      totalPrice: totalPrice + Number(shippingFee),
       shippingAddress: customerInfo.address,
       paymentMethod,
-      notes,
+      remark,
+      internalComment,
+      shippingFee,
       status: OrderStatus.EN_ATTENTE,
       source: 'Website' as any,
     });
@@ -272,6 +283,69 @@ export class OrderService {
       changedByUserId,
       `Assigned to ${platform.name}`
     );
+
+    return this.getOrderById(id);
+  }
+
+  async updateOrder(
+    id: number,
+    updateData: Partial<Order>,
+    changedByUserId?: string,
+    historyNote?: string
+  ): Promise<Order | null> {
+    const order = await this.getOrderById(id);
+    if (!order) return null;
+
+    // Track if any exchange-related fields changed
+    const exchangeFieldsChanged = 
+      (updateData.isExchange !== undefined && updateData.isExchange !== order.isExchange) ||
+      (updateData.exchangePrice !== undefined && updateData.exchangePrice !== order.exchangePrice) ||
+      (updateData.productToCollect !== undefined && updateData.productToCollect !== order.productToCollect);
+
+    const anyUpdateData = updateData as any;
+    if (anyUpdateData.notes && !updateData.remark) {
+      updateData.remark = anyUpdateData.notes;
+    }
+
+    // Recalculate total price if shipping fee changed
+    if (updateData.shippingFee !== undefined && Number(updateData.shippingFee) !== Number(order.shippingFee)) {
+      const oldShippingFee = Number(order.shippingFee);
+      const newShippingFee = Number(updateData.shippingFee);
+      order.totalPrice = Number(order.totalPrice) - oldShippingFee + newShippingFee;
+    }
+
+    // Apply updates
+    Object.assign(order, updateData);
+    await this.orderRepository.save(order);
+
+    // If status changed, use STATUS_UPDATED action
+    if (updateData.status && updateData.status !== order.status) {
+      await this.addOrderHistory(
+        id,
+        OrderAction.STATUS_UPDATED,
+        updateData.status,
+        changedByUserId,
+        historyNote || `Status updated to ${updateData.status}`
+      );
+    } else if (exchangeFieldsChanged) {
+      // If exchange fields changed, use EXCHANGE action
+      await this.addOrderHistory(
+        id,
+        OrderAction.EXCHANGE,
+        order.status,
+        changedByUserId,
+        historyNote || (order.isExchange ? 'Order marked for exchange' : 'Exchange info updated')
+      );
+    } else if (historyNote) {
+      // Default log if there's a note
+      await this.addOrderHistory(
+        id,
+        OrderAction.STATUS_UPDATED,
+        order.status,
+        changedByUserId,
+        historyNote
+      );
+    }
 
     return this.getOrderById(id);
   }

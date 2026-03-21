@@ -21,6 +21,7 @@ export enum OrderAction {
   TRANSFER = 'Transfert',
   CANCELLED = 'Annulé',
   DELIVERY_ASSIGNED = 'Livraison Assignée',
+  EXCHANGE = 'Échange',
 }
 
 @Entity('order_history')
@@ -44,7 +45,17 @@ export class OrderHistory {
 
   @Column({
     type: 'enum',
-    enum: OrderStatus,
+    enum: [
+      'En attente',
+      'Non répondu - 1ère tentative',
+      'Confirmé',
+      'OTP Confirmé',
+      'Vers la Wilaya',
+      'Reçu à la Wilaya',
+      'Livré',
+      'Annulé',
+      'Commande Fictive'
+    ],
     nullable: true,
   })
   status: OrderStatus;
