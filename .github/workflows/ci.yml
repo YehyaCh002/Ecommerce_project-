@@ -50,7 +50,7 @@ jobs:
       - name: Install Playwright Browsers
         run: npx playwright install --with-deps chromium
 
-      - name: Build and Start Server for E2E
+      - name: Start Server for E2E
         env:
           NODE_ENV: test
           DB_HOST: localhost
@@ -60,8 +60,7 @@ jobs:
           DB_NAME: ecommerce
           PORT: 3000
         run: |
-          npm run build
-          npm run start &
+          npx ts-node src/server.ts &
           npx wait-on http://localhost:3000
 
       - name: Run Playwright E2E tests
