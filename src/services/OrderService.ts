@@ -451,4 +451,32 @@ export class OrderService {
       details
     );
   }
+
+  async getConfirmationStats(): Promise<{
+    totalOrders: number;
+    confirmedOrders: number;
+    nonConfirmedOrders: number;
+    confirmationRate: number;
+  }> {
+    const totalOrders = await this.orderRepository.count();
+    const confirmedOrders = await this.orderRepository.count({
+      where: [
+        { status: OrderStatus.CONFIRME },
+        { status: OrderStatus.OTP_CONFIRME },
+        { status: OrderStatus.LIVRE },
+        { status: OrderStatus.VERS_LA_WILAYA },
+        { status: OrderStatus.RECU_A_LA_WILAYA },
+      ],
+    });
+
+    const nonConfirmedOrders = totalOrders - confirmedOrders;
+    const confirmationRate = totalOrders > 0 ? (confirmedOrders / totalOrders) * 100 : 0;
+
+    return {
+      totalOrders,
+      confirmedOrders,
+      nonConfirmedOrders,
+      confirmationRate: parseFloat(confirmationRate.toFixed(2)),
+    };
+  }
 }

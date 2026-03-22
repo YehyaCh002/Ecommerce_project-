@@ -363,4 +363,22 @@ export class OrderController {
       throw error;
     }
   };
+
+  getConfirmationStats = async (
+    req: AuthRequest,
+    res: FastifyReply
+  ): Promise<void> => {
+    try {
+      const stats = await this.orderService.getConfirmationStats();
+      res.status(200).send({
+        success: true,
+        data: stats,
+      });
+    } catch (error) {
+      res.status(500).send({
+        success: false,
+        message: 'Failed to fetch confirmation stats',
+      });
+    }
+  };
 }
