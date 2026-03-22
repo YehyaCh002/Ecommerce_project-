@@ -50,6 +50,22 @@ jobs:
       - name: Install Playwright Browsers
         run: npx playwright install --with-deps chromium
 
+      - name: Setup Database for E2E
+        env:
+          NODE_ENV: test
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_USER: postgres
+          DB_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          DB_NAME: ecommerce
+        run: |
+          # 1. Run Migrations
+          npx ts-node node_modules/typeorm/cli.js migration:run -d src/config/data-source.ts
+          # 2. Fix Sequence (to avoid duplicate ID errors during tests)
+          npx ts-node node_modules/typeorm/cli.js query "SELECT setval(pg_get_serial_sequence('orders', 'id'), coalesce(max(id),0) + 1, false) FROM orders;" -d src/config/data-source.ts
+          # 3. Seed Variants
+          npx ts-node seed-variants.ts
+
       - name: Start Server for E2E
         env:
           NODE_ENV: test
@@ -60,7 +76,7 @@ jobs:
           DB_NAME: ecommerce
           PORT: 3000
         run: |
-          npx ts-node src/server.ts &
+          npm run start:dev &
           npx wait-on http://localhost:3000
 
       - name: Run Playwright E2E tests
