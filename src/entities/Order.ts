@@ -37,6 +37,15 @@ export enum OrderSource {
   OTHER = 'Other',
 }
 
+export enum ValidationOutcome {
+  RECEIVED = 'received',
+  RETURNED = 'returned',
+  EXCHANGED = 'exchanged',
+  REFUSED = 'refused',
+  UNREACHABLE = 'unreachable',
+  OTHER = 'other',
+}
+
 
 export enum DeliveryType {
   DOMICILE = 'Domicile',
@@ -60,6 +69,19 @@ export class Order {
 
   @Column({ type: 'boolean', default: false })
   soldFromStore: boolean;
+
+  @Column({ type: 'boolean', default: false })
+  isValidated: boolean;
+
+  @Column({
+    type: 'enum',
+    enum: ValidationOutcome,
+    nullable: true,
+  })
+  validationOutcome: ValidationOutcome | null;
+
+  @Column({ type: 'timestamp', nullable: true })
+  validatedAt: Date | null;
 
   // Customer Information
   @Column({ type: 'varchar', length: 255 })

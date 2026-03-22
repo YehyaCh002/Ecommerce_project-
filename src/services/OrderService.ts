@@ -1,5 +1,10 @@
 import { AppDataSource } from '../config/data-source';
-import { Order, OrderStatus, DeliveryType } from '../entities/Order';
+import {
+  Order,
+  OrderStatus,
+  DeliveryType,
+  ValidationOutcome,
+} from '../entities/Order';
 import { OrderItem } from '../entities/OrderItem';
 import { OrderHistory, OrderAction } from '../entities/OrderHistory';
 import { Customer } from '../entities/Customer';
@@ -279,7 +284,22 @@ export class OrderService {
     if (!order) return null;
 
     const oldStatus = order.status;
-    await this.orderRepository.update(id, { status });
+    const statusPatch: Partial<Order> = { status };
+
+    if (status === OrderStatus.LIVRE) {
+      statusPatch.isValidated = true;
+      statusPatch.validationOutcome = ValidationOutcome.RECEIVED;
+      statusPatch.validatedAt = order.validatedAt || new Date();
+    } else if (
+      order.isValidated ||
+      order.validationOutcome === ValidationOutcome.RECEIVED
+    ) {
+      statusPatch.isValidated = false;
+      statusPatch.validationOutcome = null;
+      statusPatch.validatedAt = null;
+    }
+
+    await this.orderRepository.update(id, statusPatch);
 
     await this.addOrderHistory(
       id,
@@ -326,6 +346,7 @@ export class OrderService {
   ): Promise<Order | null> {
     const order = await this.getOrderById(id);
     if (!order) return null;
+    const previousStatus = order.status;
 
     // Track if any exchange-related fields changed
     const exchangeFieldsChanged =
@@ -336,6 +357,52 @@ export class OrderService {
     const anyUpdateData = updateData as any;
     if (anyUpdateData.notes && !updateData.remark) {
       updateData.remark = anyUpdateData.notes;
+    }
+
+    // Enforce business meaning for validation.
+    const hasValidationOutcome = updateData.validationOutcome !== undefined;
+
+    if (hasValidationOutcome) {
+      if (updateData.validationOutcome === ValidationOutcome.RECEIVED) {
+        if (updateData.isValidated === false) {
+          throw new Error('Validation outcome "received" requires isValidated=true');
+        }
+
+        updateData.isValidated = true;
+        updateData.status = updateData.status || OrderStatus.LIVRE;
+        if (updateData.validatedAt === undefined) {
+          updateData.validatedAt = order.validatedAt || new Date();
+        }
+      } else {
+        if (updateData.status === OrderStatus.LIVRE) {
+          throw new Error('Status "Livré" requires validation outcome "received"');
+        }
+
+        updateData.isValidated = false;
+        updateData.validatedAt = null;
+
+        if (updateData.validationOutcome === ValidationOutcome.EXCHANGED) {
+          updateData.isExchange = updateData.isExchange ?? true;
+        }
+      }
+    } else {
+      if (updateData.status === OrderStatus.LIVRE || updateData.isValidated === true) {
+        updateData.isValidated = true;
+        updateData.status = updateData.status || OrderStatus.LIVRE;
+        updateData.validationOutcome = ValidationOutcome.RECEIVED;
+        if (updateData.validatedAt === undefined) {
+          updateData.validatedAt = order.validatedAt || new Date();
+        }
+      }
+
+      if (updateData.isValidated === false) {
+        if (updateData.status === OrderStatus.LIVRE) {
+          throw new Error('Status "Livré" requires isValidated=true');
+        }
+
+        updateData.validationOutcome = null;
+        updateData.validatedAt = null;
+      }
     }
 
     // Recalculate total price if shipping fee changed
@@ -350,7 +417,7 @@ export class OrderService {
     await this.orderRepository.save(order);
 
     // If status changed, use STATUS_UPDATED action
-    if (updateData.status && updateData.status !== order.status) {
+    if (updateData.status && updateData.status !== previousStatus) {
       await this.addOrderHistory(
         id,
         OrderAction.STATUS_UPDATED,

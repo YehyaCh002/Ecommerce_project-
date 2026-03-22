@@ -99,7 +99,12 @@ export const updateOrderSchema = {
           customerEmail: { type: 'string', format: 'email' },
           detailedAddress: { type: 'string' },
           deliveryType: { type: 'string', enum: ['Domicile', 'Bureau', 'Yalidine Desk', 'Stop Desk'] },
-          soldFromStore: { type: 'boolean' }
+          soldFromStore: { type: 'boolean' },
+          isValidated: { type: 'boolean' },
+          validationOutcome: {
+            type: 'string',
+            enum: ['received', 'returned', 'exchanged', 'refused', 'unreachable', 'other'],
+          }
         }
       },
       note: { type: 'string' }
