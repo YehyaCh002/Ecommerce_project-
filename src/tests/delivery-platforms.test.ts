@@ -86,7 +86,7 @@ describe('Delivery Platforms & Order Timers Integration Tests', () => {
         url: '/orders/quick-order',
         payload: {
           customerInfo: { name: 'Test', phoneNumber: '0555000111' },
-          items: [{ productId: 'p1', quantity: 2 }],
+          items: [{ productId: '00000000-0000-0000-0000-000000000001', quantity: 2 }],
           paymentMethod: 'Cash'
         }
       });
