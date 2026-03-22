@@ -7,6 +7,7 @@ const mockOrderService = {
   getOrdersByUserId: jest.fn(),
   getAllOrders: jest.fn(),
   updateOrderStatus: jest.fn(),
+  updateOrder: jest.fn(),
   cancelOrder: jest.fn(),
 };
 
@@ -90,6 +91,54 @@ describe('Order Routes Integration Tests', () => {
 
        expect(response.status).toBe(200);
        expect(response.body.data[0].id).toBe(1);
+    });
+  });
+
+  describe('PUT /orders/:id', () => {
+    it('should return 200 and updated order for admin', async () => {
+      const updatedOrder = { id: 1, isExchange: true, shippingFee: 500 };
+      mockOrderService.updateOrder.mockResolvedValueOnce(updatedOrder);
+
+      const response = await sendAdminRequest(app, {
+        method: 'PUT',
+        url: '/orders/1',
+        payload: {
+          updateData: { isExchange: true, shippingFee: 500 },
+          note: 'Admin made this an exchange'
+        }
+      });
+
+      expect(response.status).toBe(200);
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.isExchange).toBe(true);
+      expect(mockOrderService.updateOrder).toHaveBeenCalledWith(1, { isExchange: true, shippingFee: 500 }, '00000000-0000-0000-0000-000000000001', 'Admin made this an exchange');
+    });
+
+    it('should return 403 if not admin', async () => {
+      const response = await sendAuthenticatedRequest(app, {
+        method: 'PUT',
+        url: '/orders/1',
+        payload: {
+          updateData: { isExchange: true }
+        },
+        userId,
+      });
+
+      expect(response.status).toBe(403);
+    });
+
+    it('should return 404 if order not found', async () => {
+      mockOrderService.updateOrder.mockResolvedValueOnce(null);
+
+      const response = await sendAdminRequest(app, {
+        method: 'PUT',
+        url: '/orders/999',
+        payload: {
+          updateData: { isExchange: true }
+        }
+      });
+
+      expect(response.status).toBe(404);
     });
   });
 });
