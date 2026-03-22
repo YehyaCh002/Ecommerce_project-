@@ -76,7 +76,7 @@ jobs:
           DB_NAME: ecommerce
           PORT: 3000
         run: |
-          npm run start:dev &
+          npm run dev &
           npx wait-on http://localhost:3000
 
       - name: Run Playwright E2E tests
