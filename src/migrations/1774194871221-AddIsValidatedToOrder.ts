@@ -4,9 +4,9 @@ export class AddIsValidatedToOrder1774194871221 implements MigrationInterface {
     name = 'AddIsValidatedToOrder1774194871221'
 
     public async up(queryRunner: QueryRunner): Promise<void> {
-        await queryRunner.query(`DROP INDEX "public"."IDX_f515690c571a03400a9876600b"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_5a27845bc2d79be6f1fa3d2c03"`);
-        await queryRunner.query(`DROP INDEX "public"."IDX_516736b9807228bb17b2d0a3e2"`);
+        await queryRunner.query(`DROP INDEX IF EXISTS "public"."IDX_f515690c571a03400a9876600b"`);
+        await queryRunner.query(`DROP INDEX IF EXISTS "public"."IDX_5a27845bc2d79be6f1fa3d2c03"`);
+        await queryRunner.query(`DROP INDEX IF EXISTS "public"."IDX_516736b9807228bb17b2d0a3e2"`);
         await queryRunner.query(`ALTER TABLE "orders" ADD "isValidated" boolean NOT NULL DEFAULT false`);
         await queryRunner.query(`ALTER TABLE "order_history" DROP COLUMN "action"`);
         await queryRunner.query(`CREATE TYPE "public"."order_history_action_enum" AS ENUM('Créé', 'Statut Mis à Jour', 'Imprimé', 'En Préparation', 'Expédié', 'Vers Wilaya', 'Reçu à Wilaya', 'Message Envoyé', 'Transfert', 'Annulé', 'Livraison Assignée', 'Échange')`);
