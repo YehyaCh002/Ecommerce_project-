@@ -7,17 +7,39 @@ export class AddIsValidatedToOrder1774194871221 implements MigrationInterface {
         await queryRunner.query(`DROP INDEX IF EXISTS "public"."IDX_f515690c571a03400a9876600b"`);
         await queryRunner.query(`DROP INDEX IF EXISTS "public"."IDX_5a27845bc2d79be6f1fa3d2c03"`);
         await queryRunner.query(`DROP INDEX IF EXISTS "public"."IDX_516736b9807228bb17b2d0a3e2"`);
-        await queryRunner.query(`ALTER TABLE "orders" ADD "isValidated" boolean NOT NULL DEFAULT false`);
-        await queryRunner.query(`ALTER TABLE "order_history" DROP COLUMN "action"`);
-        await queryRunner.query(`CREATE TYPE "public"."order_history_action_enum" AS ENUM('Créé', 'Statut Mis à Jour', 'Imprimé', 'En Préparation', 'Expédié', 'Vers Wilaya', 'Reçu à Wilaya', 'Message Envoyé', 'Transfert', 'Annulé', 'Livraison Assignée', 'Échange')`);
-        await queryRunner.query(`ALTER TABLE "order_history" ADD "action" "public"."order_history_action_enum" NOT NULL DEFAULT 'Créé'`);
-        await queryRunner.query(`ALTER TABLE "order_history" DROP COLUMN "status"`);
-        await queryRunner.query(`CREATE TYPE "public"."order_history_status_enum" AS ENUM('En attente', 'Non répondu - 1ère tentative', 'Confirmé', 'OTP Confirmé', 'Vers la Wilaya', 'Reçu à la Wilaya', 'Livré', 'Annulé', 'Commande Fictive')`);
-        await queryRunner.query(`ALTER TABLE "order_history" ADD "status" "public"."order_history_status_enum"`);
-        await queryRunner.query(`ALTER TABLE "orders" DROP COLUMN "deliveryType"`);
-        await queryRunner.query(`CREATE TYPE "public"."orders_deliverytype_enum" AS ENUM('Domicile', 'Bureau', 'Yalidine Desk', 'Stop Desk')`);
-        await queryRunner.query(`ALTER TABLE "orders" ADD "deliveryType" "public"."orders_deliverytype_enum" DEFAULT 'Domicile'`);
-        await queryRunner.query(`ALTER TABLE "orders" ALTER COLUMN "soldFromStore" SET NOT NULL`);
+        await queryRunner.query(`ALTER TABLE "orders" ADD COLUMN IF NOT EXISTS "isValidated" boolean NOT NULL DEFAULT false`);
+        await queryRunner.query(`ALTER TABLE "order_history" DROP COLUMN IF EXISTS "action"`);
+        await queryRunner.query(`DO $$ BEGIN
+            IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'order_history_action_enum') THEN
+                CREATE TYPE "public"."order_history_action_enum" AS ENUM('Créé', 'Statut Mis à Jour', 'Imprimé', 'En Préparation', 'Expédié', 'Vers Wilaya', 'Reçu à Wilaya', 'Message Envoyé', 'Transfert', 'Annulé', 'Livraison Assignée', 'Échange');
+            END IF;
+        END $$`);
+        await queryRunner.query(`ALTER TABLE "order_history" ADD COLUMN IF NOT EXISTS "action" "public"."order_history_action_enum" NOT NULL DEFAULT 'Créé'`);
+        await queryRunner.query(`ALTER TABLE "order_history" DROP COLUMN IF EXISTS "status"`);
+        await queryRunner.query(`DO $$ BEGIN
+            IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'order_history_status_enum') THEN
+                CREATE TYPE "public"."order_history_status_enum" AS ENUM('En attente', 'Non répondu - 1ère tentative', 'Confirmé', 'OTP Confirmé', 'Vers la Wilaya', 'Reçu à la Wilaya', 'Livré', 'Annulé', 'Commande Fictive');
+            END IF;
+        END $$`);
+        await queryRunner.query(`ALTER TABLE "order_history" ADD COLUMN IF NOT EXISTS "status" "public"."order_history_status_enum"`);
+        await queryRunner.query(`ALTER TABLE "orders" DROP COLUMN IF EXISTS "deliveryType"`);
+        await queryRunner.query(`DO $$ BEGIN
+            IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'orders_deliverytype_enum') THEN
+                CREATE TYPE "public"."orders_deliverytype_enum" AS ENUM('Domicile', 'Bureau', 'Yalidine Desk', 'Stop Desk');
+            END IF;
+        END $$`);
+        await queryRunner.query(`ALTER TABLE "orders" ADD COLUMN IF NOT EXISTS "deliveryType" "public"."orders_deliverytype_enum" DEFAULT 'Domicile'`);
+        await queryRunner.query(`DO $$ BEGIN
+            IF EXISTS (
+                SELECT 1
+                FROM information_schema.columns
+                WHERE table_schema = 'public'
+                AND table_name = 'orders'
+                AND column_name = 'soldFromStore'
+            ) THEN
+                ALTER TABLE "orders" ALTER COLUMN "soldFromStore" SET NOT NULL;
+            END IF;
+        END $$`);
     }
 
     public async down(queryRunner: QueryRunner): Promise<void> {
