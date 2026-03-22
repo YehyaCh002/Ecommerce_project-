@@ -38,10 +38,28 @@ export enum OrderSource {
 }
 
 
+export enum DeliveryType {
+  DOMICILE = 'Domicile',
+  BUREAU = 'Bureau',
+  YALIDINE_DESK = 'Yalidine Desk',
+  STOP_DESK = 'Stop Desk',
+}
+
 @Entity('orders')
 export class Order {
   @PrimaryGeneratedColumn()
   id: number;
+
+  @Column({
+    type: 'enum',
+    enum: DeliveryType,
+    default: DeliveryType.DOMICILE,
+    nullable: true,
+  })
+  deliveryType: DeliveryType;
+
+  @Column({ type: 'boolean', default: false })
+  soldFromStore: boolean;
 
   // Customer Information
   @Column({ type: 'varchar', length: 255 })
@@ -49,6 +67,12 @@ export class Order {
 
   @Column({ type: 'varchar', length: 50 })
   phoneNumber: string;
+
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  customerEmail: string;
+
+  @Column({ type: 'text', nullable: true })
+  detailedAddress: string;
 
   // Pricing
   @Column({ type: 'decimal', precision: 10, scale: 2 })

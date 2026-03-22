@@ -13,7 +13,61 @@ export const createOrderSchema = {
       exchangePrice: { type: 'number' },
       productToCollect: { type: 'string' },
       isFreeShipping: { type: 'boolean' },
-      hasInsurance: { type: 'boolean' }
+      hasInsurance: { type: 'boolean' },
+      customerEmail: { type: 'string', format: 'email' },
+      detailedAddress: { type: 'string' },
+      deliveryType: { type: 'string', enum: ['Domicile', 'Bureau', 'Yalidine Desk', 'Stop Desk'] },
+      soldFromStore: { type: 'boolean' },
+      items: {
+        type: 'array',
+        items: {
+          type: 'object',
+          required: ['productId', 'quantity'],
+          properties: {
+            productId: { type: 'string', format: 'uuid' },
+            quantity: { type: 'number', minimum: 1 },
+            variantId: { type: 'string', format: 'uuid' }
+          }
+        }
+      }
+    }
+  }
+};
+
+export const quickOrderSchema = {
+  body: {
+    type: 'object',
+    required: ['customerInfo', 'items'],
+    properties: {
+      customerInfo: {
+        type: 'object',
+        required: ['name', 'phoneNumber'],
+        properties: {
+          name: { type: 'string' },
+          phoneNumber: { type: 'string' },
+          email: { type: 'string', format: 'email' },
+          address: { type: 'string' }
+        }
+      },
+      items: {
+        type: 'array',
+        items: {
+          type: 'object',
+          required: ['productId', 'quantity'],
+          properties: {
+            productId: { type: 'string', format: 'uuid' },
+            quantity: { type: 'number', minimum: 1 },
+            variantId: { type: 'string', format: 'uuid' }
+          }
+        }
+      },
+      paymentMethod: { type: 'string' },
+      notes: { type: 'string' },
+      remark: { type: 'string' },
+      internalComment: { type: 'string' },
+      shippingFee: { type: 'number' },
+      deliveryType: { type: 'string', enum: ['Domicile', 'Bureau', 'Yalidine Desk', 'Stop Desk'] },
+      soldFromStore: { type: 'boolean' }
     }
   }
 };
@@ -41,7 +95,11 @@ export const updateOrderSchema = {
           hasInsurance: { type: 'boolean' },
           wilayaId: { type: 'number' },
           deliveryPlatformId: { type: 'string' },
-          assignedToId: { type: 'string' }
+          assignedToId: { type: 'string' },
+          customerEmail: { type: 'string', format: 'email' },
+          detailedAddress: { type: 'string' },
+          deliveryType: { type: 'string', enum: ['Domicile', 'Bureau', 'Yalidine Desk', 'Stop Desk'] },
+          soldFromStore: { type: 'boolean' }
         }
       },
       note: { type: 'string' }

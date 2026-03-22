@@ -1,5 +1,5 @@
 import { AppDataSource } from '../config/data-source';
-import { Order, OrderStatus } from '../entities/Order';
+import { Order, OrderStatus, DeliveryType } from '../entities/Order';
 import { OrderItem } from '../entities/OrderItem';
 import { OrderHistory, OrderAction } from '../entities/OrderHistory';
 import { Customer } from '../entities/Customer';
@@ -22,7 +22,11 @@ export class OrderService {
     paymentMethod: string,
     remark?: string,
     internalComment?: string,
-    shippingFee: number = 0
+    shippingFee: number = 0,
+    customerEmail?: string,
+    detailedAddress?: string,
+    deliveryType?: DeliveryType,
+    soldFromStore: boolean = false
   ): Promise<Order> {
     // Note: In the landing page context, this might be replaced by createGuestOrder
     const cart = await this.cartService.getCartByUserId(userId);
@@ -60,6 +64,10 @@ export class OrderService {
       remark,
       internalComment,
       shippingFee,
+      customerEmail,
+      detailedAddress,
+      deliveryType,
+      soldFromStore,
       status: OrderStatus.EN_ATTENTE,
       source: 'Website' as any,
     });
@@ -104,11 +112,13 @@ export class OrderService {
       email?: string;
       address?: string;
     },
-    items: { productId: string; quantity: number }[],
+    items: { productId: string; quantity: number; variantId?: string }[],
     paymentMethod: string,
     remark?: string,
     internalComment?: string,
-    shippingFee: number = 0
+    shippingFee: number = 0,
+    deliveryType?: DeliveryType,
+    soldFromStore: boolean = false
   ): Promise<Order> {
     // 1. Find or Create Customer
     let customer = await this.customerRepository.findOne({
@@ -133,16 +143,27 @@ export class OrderService {
 
     // 2. Calculate Total and Validate Stock
     let totalPrice = 0;
-    const validatedItems = [];
+    const validatedItems: { product: any; quantity: number; variant?: any }[] = [];
 
     for (const item of items) {
       const product = await this.productService.getProductById(item.productId);
       if (!product) throw new Error(`Product not found: ${item.productId}`);
-      if (product.stock < item.quantity) {
-        throw new Error(`Insufficient stock for product: ${product.name}`);
+
+      let variant = null;
+      if (item.variantId) {
+        variant = product.variants?.find((v) => v.id === item.variantId);
+        if (!variant) throw new Error(`Variant not found for product: ${product.name}`);
+        if (variant.stock < item.quantity) {
+          throw new Error(`Insufficient stock for ${product.name} (Size/Color variant)`);
+        }
+      } else {
+        if (product.stock < item.quantity) {
+          throw new Error(`Insufficient stock for product: ${product.name}`);
+        }
       }
-      totalPrice += Number(product.price) * item.quantity;
-      validatedItems.push({ product, quantity: item.quantity });
+
+      totalPrice += Number(variant?.priceOverride || product.price) * item.quantity;
+      validatedItems.push({ product, quantity: item.quantity, variant });
     }
 
     // 3. Create Order
@@ -156,6 +177,10 @@ export class OrderService {
       remark,
       internalComment,
       shippingFee,
+      customerEmail: customerInfo.email,
+      detailedAddress: customerInfo.address,
+      deliveryType,
+      soldFromStore,
       status: OrderStatus.EN_ATTENTE,
       source: 'Website' as any,
     });
@@ -180,12 +205,18 @@ export class OrderService {
       const orderItem = this.orderItemRepository.create({
         orderId: savedOrder.id,
         productId: item.product.id,
+        variantId: item.variant?.id,
         quantity: item.quantity,
-        price: item.product.price,
+        price: item.variant?.priceOverride || item.product.price,
       });
 
       await this.orderItemRepository.save(orderItem);
-      await this.productService.decreaseStock(item.product.id, item.quantity);
+
+      if (item.variant) {
+        await this.productService.decreaseVariantStock(item.variant.id, item.quantity);
+      } else {
+        await this.productService.decreaseStock(item.product.id, item.quantity);
+      }
     }
 
     return (await this.getOrderById(savedOrder.id)) as Order;
@@ -297,7 +328,7 @@ export class OrderService {
     if (!order) return null;
 
     // Track if any exchange-related fields changed
-    const exchangeFieldsChanged = 
+    const exchangeFieldsChanged =
       (updateData.isExchange !== undefined && updateData.isExchange !== order.isExchange) ||
       (updateData.exchangePrice !== undefined && updateData.exchangePrice !== order.exchangePrice) ||
       (updateData.productToCollect !== undefined && updateData.productToCollect !== order.productToCollect);

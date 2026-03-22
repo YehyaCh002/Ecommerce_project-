@@ -73,7 +73,9 @@ export class OrderController {
         paymentMethod,
         remark || notes,
         internalComment,
-        shippingFee
+        shippingFee,
+        customerInfo.deliveryType || (req.body as any).deliveryType,
+        customerInfo.soldFromStore !== undefined ? customerInfo.soldFromStore : (req.body as any).soldFromStore
       );
 
       res.status(201).send({

@@ -9,6 +9,7 @@ import {
 } from 'typeorm';
 import { Cart } from './Cart';
 import { Product } from './Product';
+import { ProductVariant } from './ProductVariant';
 
 @Entity('cart_items')
 export class CartItem {
@@ -35,6 +36,16 @@ export class CartItem {
 
   @Column({ type: 'int', default: 1 })
   quantity: number;
+
+  @ManyToOne(() => ProductVariant, (variant) => variant.cartItems, {
+    nullable: true,
+    onDelete: 'CASCADE',
+  })
+  @JoinColumn({ name: 'variantId' })
+  productVariant: ProductVariant;
+
+  @Column({ type: 'uuid', nullable: true })
+  variantId: string;
 
   @CreateDateColumn()
   createdAt: Date;

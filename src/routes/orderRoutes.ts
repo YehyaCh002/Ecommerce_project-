@@ -1,7 +1,7 @@
 import { FastifyInstance } from 'fastify';
 import { OrderController } from '../controllers/OrderController';
 import { authenticate, requireAdmin } from '../middlewares/auth';
-import { createOrderSchema, updateOrderSchema } from '../schemas/orderSchema';
+import { createOrderSchema, updateOrderSchema, quickOrderSchema } from '../schemas/orderSchema';
 
 export default async function orderRoutes(fastify: FastifyInstance) {
   const orderController = new OrderController();
@@ -22,6 +22,7 @@ export default async function orderRoutes(fastify: FastifyInstance) {
 
   fastify.post(
     '/quick-order',
+    { schema: quickOrderSchema },
     (request, reply) => orderController.createQuickOrder(request, reply)
   );
 

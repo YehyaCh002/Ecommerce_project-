@@ -1,9 +1,11 @@
 import { AppDataSource } from '../config/data-source';
 import { Product } from '../entities/Product';
+import { ProductVariant } from '../entities/ProductVariant';
 import { FindOptionsWhere, Like } from 'typeorm';
 
 export class ProductService {
   private productRepository = AppDataSource.getRepository(Product);
+  private variantRepository = AppDataSource.getRepository(ProductVariant);
 
   async createProduct(data: {
     name: string;
@@ -76,7 +78,7 @@ export class ProductService {
   async getProductById(id: string): Promise<Product | null> {
     return await this.productRepository.findOne({
       where: { id },
-      relations: ['category'],
+      relations: ['category', 'variants'],
     });
   }
 
@@ -108,5 +110,22 @@ export class ProductService {
     product.stock -= quantity;
     await this.productRepository.save(product);
     return true;
+  }
+
+  async decreaseVariantStock(variantId: string, quantity: number): Promise<boolean> {
+    const variant = await this.variantRepository.findOne({ where: { id: variantId } });
+    if (!variant || variant.stock < quantity) return false;
+
+    variant.stock -= quantity;
+    await this.variantRepository.save(variant);
+    return true;
+  }
+
+  async updateVariantStock(variantId: string, quantity: number): Promise<ProductVariant | null> {
+    const variant = await this.variantRepository.findOne({ where: { id: variantId } });
+    if (!variant) return null;
+
+    variant.stock = quantity;
+    return await this.variantRepository.save(variant);
   }
 }
