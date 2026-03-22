@@ -37,7 +37,7 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Run tests
+      - name: Run unit & integration tests
         env:
           NODE_ENV: test
           DB_HOST: localhost
@@ -46,3 +46,31 @@ jobs:
           DB_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
           DB_NAME: ecommerce
         run: npm test
+
+      - name: Install Playwright Browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Build and Start Server for E2E
+        env:
+          NODE_ENV: test
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_USER: postgres
+          DB_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          DB_NAME: ecommerce
+          PORT: 3000
+        run: |
+          npm run build
+          npm run start &
+          npx wait-on http://localhost:3000
+
+      - name: Run Playwright E2E tests
+        env:
+          NODE_ENV: test
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_USER: postgres
+          DB_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          DB_NAME: ecommerce
+          CI: true
+        run: npx playwright test --config=playwright.config.ts
