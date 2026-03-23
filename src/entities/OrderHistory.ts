@@ -5,6 +5,7 @@ import {
   CreateDateColumn,
   ManyToOne,
   JoinColumn,
+  Index,
 } from 'typeorm';
 import { Order, OrderStatus } from './Order';
 import { User } from './User';
@@ -25,6 +26,9 @@ export enum OrderAction {
 }
 
 @Entity('order_history')
+@Index(['orderId'])
+@Index(['timestamp'])
+@Index(['changedByUserId'])
 export class OrderHistory {
   @PrimaryGeneratedColumn()
   id: number;
@@ -67,8 +71,8 @@ export class OrderHistory {
   @JoinColumn({ name: 'changedByUserId' })
   changedByUser: User;
 
-  @Column({ type: 'uuid', nullable: true })
-  changedByUserId: string;
+  @Column({ type: 'int', nullable: true })
+  changedByUserId: number;
 
   @CreateDateColumn()
   timestamp: Date;

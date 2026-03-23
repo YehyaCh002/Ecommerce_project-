@@ -6,15 +6,19 @@ import {
   UpdateDateColumn,
   ManyToOne,
   JoinColumn,
+  Index,
 } from 'typeorm';
 import { Cart } from './Cart';
 import { Product } from './Product';
 import { ProductVariant } from './ProductVariant';
 
 @Entity('cart_items')
+@Index(['cartId'])
+@Index(['productId'])
+@Index(['variantId'])
 export class CartItem {
-  @PrimaryGeneratedColumn('uuid')
-  id: string;
+  @PrimaryGeneratedColumn()
+  id: number;
 
   @ManyToOne(() => Cart, (cart) => cart.cartItems, {
     onDelete: 'CASCADE',
@@ -22,8 +26,8 @@ export class CartItem {
   @JoinColumn({ name: 'cartId' })
   cart: Cart;
 
-  @Column({ type: 'uuid' })
-  cartId: string;
+  @Column({ type: 'int' })
+  cartId: number;
 
   @ManyToOne(() => Product, (product) => product.cartItems, {
     onDelete: 'CASCADE',
@@ -31,8 +35,8 @@ export class CartItem {
   @JoinColumn({ name: 'productId' })
   product: Product;
 
-  @Column({ type: 'uuid' })
-  productId: string;
+  @Column({ type: 'int' })
+  productId: number;
 
   @Column({ type: 'int', default: 1 })
   quantity: number;
@@ -44,8 +48,8 @@ export class CartItem {
   @JoinColumn({ name: 'variantId' })
   productVariant: ProductVariant;
 
-  @Column({ type: 'uuid', nullable: true })
-  variantId: string;
+  @Column({ type: 'int', nullable: true })
+  variantId: number;
 
   @CreateDateColumn()
   createdAt: Date;

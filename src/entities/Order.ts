@@ -8,6 +8,7 @@ import {
   JoinColumn,
   OneToMany,
   AfterLoad,
+  Index,
 } from 'typeorm';
 import { User } from './User';
 import { Customer } from './Customer';
@@ -55,6 +56,12 @@ export enum DeliveryType {
 }
 
 @Entity('orders')
+@Index(['status'])
+@Index(['createdAt'])
+@Index(['customerId'])
+@Index(['assignedToId'])
+@Index(['phoneNumber'])
+@Index(['wilayaId'])
 export class Order {
   @PrimaryGeneratedColumn()
   id: number;
@@ -141,20 +148,20 @@ export class Order {
   @JoinColumn({ name: 'assignedToId' })
   assignedTo: User;
 
-  @Column({ type: 'uuid', nullable: true })
-  assignedToId: string;
+  @Column({ type: 'int', nullable: true })
+  assignedToId: number;
 
   // Customer Link
   @ManyToOne(() => Customer, (customer) => customer.orders, { nullable: true })
   @JoinColumn({ name: 'customerId' })
   customer: Customer;
 
-  @Column({ type: 'uuid', nullable: true })
-  customerId: string;
+  @Column({ type: 'int', nullable: true })
+  customerId: number;
 
   // For backward compatibility (Optional, can be removed once refactored)
-  @Column({ type: 'uuid', nullable: true })
-  userId: string;
+  @Column({ type: 'int', nullable: true })
+  userId: number;
 
   // Additional Fields
   @Column({ type: 'varchar', length: 500, nullable: true })
@@ -171,8 +178,8 @@ export class Order {
   @JoinColumn({ name: 'deliveryPlatformId' })
   deliveryPlatform: DeliveryPlatform;
 
-  @Column({ type: 'uuid', nullable: true })
-  deliveryPlatformId: string;
+  @Column({ type: 'int', nullable: true })
+  deliveryPlatformId: number;
 
   @Column({ type: 'boolean', default: false })
   isExchange: boolean;

@@ -7,21 +7,24 @@ import {
   ManyToOne,
   JoinColumn,
   OneToMany,
+  Index,
 } from 'typeorm';
 import { User } from './User';
 import { CartItem } from './CartItem';
 
 @Entity('carts')
+@Index(['userId'])
+@Index(['isActive'])
 export class Cart {
-  @PrimaryGeneratedColumn('uuid')
-  id: string;
+  @PrimaryGeneratedColumn()
+  id: number;
 
   @ManyToOne(() => User, (user) => user.carts, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'userId' })
   user: User;
 
-  @Column({ type: 'uuid' })
-  userId: string;
+  @Column({ type: 'int' })
+  userId: number;
 
   @OneToMany(() => CartItem, (cartItem) => cartItem.cart, {
     cascade: true,

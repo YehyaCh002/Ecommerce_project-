@@ -7,18 +7,22 @@ import {
   ManyToOne,
   JoinColumn,
   OneToMany,
+  Index,
 } from 'typeorm';
 import { Product } from './Product';
 import { OrderItem } from './OrderItem';
 import { CartItem } from './CartItem';
 
 @Entity('product_variants')
+@Index(['productId'])
+@Index(['sku'])
+@Index(['productId', 'size', 'color'])
 export class ProductVariant {
-  @PrimaryGeneratedColumn('uuid')
-  id: string;
+  @PrimaryGeneratedColumn()
+  id: number;
 
-  @Column({ type: 'uuid' })
-  productId: string;
+  @Column({ type: 'int' })
+  productId: number;
 
   @ManyToOne(() => Product, (product) => product.variants, {
     onDelete: 'CASCADE',

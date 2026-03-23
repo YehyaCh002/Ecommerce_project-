@@ -7,6 +7,7 @@ import {
   ManyToOne,
   JoinColumn,
   OneToMany,
+  Index,
 } from 'typeorm';
 import { Category } from './Category';
 import { OrderItem } from './OrderItem';
@@ -14,9 +15,12 @@ import { CartItem } from './CartItem';
 import { ProductVariant } from './ProductVariant';
 
 @Entity('products')
+@Index(['categoryId'])
+@Index(['sku'])
+@Index(['isActive'])
 export class Product {
-  @PrimaryGeneratedColumn('uuid')
-  id: string;
+  @PrimaryGeneratedColumn()
+  id: number;
 
   @Column({ type: 'varchar', length: 255 })
   name: string;
@@ -45,8 +49,8 @@ export class Product {
   @JoinColumn({ name: 'categoryId' })
   category: Category;
 
-  @Column({ type: 'uuid', nullable: true })
-  categoryId: string;
+  @Column({ type: 'int', nullable: true })
+  categoryId: number;
 
   @OneToMany(() => OrderItem, (orderItem) => orderItem.product)
   orderItems: OrderItem[];
