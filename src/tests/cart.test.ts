@@ -22,7 +22,7 @@ jest.mock('../config/data-source', () => ({
 
 describe('Cart Routes Integration Tests', () => {
   let app: FastifyInstance;
-  const userId = '00000000-0000-0000-0000-000000000123';
+  const userId = '123';
 
   beforeAll(async () => {
     app = await setupTest();

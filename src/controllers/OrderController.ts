@@ -4,7 +4,7 @@ import { OrderStatus } from '../entities/Order';
 import { OrderAction } from '../entities/OrderHistory';
 
 type AuthRequest = FastifyRequest & {
-  userId?: string;
+  userId?: number;
   userRole?: string;
 };
 
@@ -17,7 +17,7 @@ export class OrderController {
   ): Promise<void> => {
     try {
       const body = req.body as any;
-      const userId = req.userId || body.userId;
+      const userId = req.userId || (body.userId ? parseInt(body.userId, 10) : undefined);
       if (!userId) {
         res.status(401).send({
           success: false,
@@ -122,7 +122,7 @@ export class OrderController {
   ): Promise<void> => {
     try {
       const body = (req.body as any) || {};
-      const userId = req.userId || body.userId;
+      const userId = req.userId || (body.userId ? parseInt(body.userId, 10) : undefined);
       if (!userId) {
         res.status(401).send({
           success: false,
@@ -277,7 +277,7 @@ export class OrderController {
 
       const order = await this.orderService.updateOrderDeliveryPlatform(
         parseInt(id),
-        platformId,
+        parseInt(platformId, 10),
         req.userId
       );
 
@@ -301,7 +301,7 @@ export class OrderController {
   ): Promise<void> => {
     try {
       const body = (req.body as any) || {};
-      const userId = req.userId || body.userId;
+      const userId = req.userId || (body.userId ? parseInt(body.userId, 10) : undefined);
       if (!userId) {
         res.status(401).send({
           success: false,

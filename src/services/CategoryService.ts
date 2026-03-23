@@ -28,7 +28,7 @@ export class CategoryService {
     });
   }
 
-  async getCategoryById(id: string): Promise<Category | null> {
+  async getCategoryById(id: number): Promise<Category | null> {
     return await this.categoryRepository.findOne({
       where: { id },
       relations: ['products'],
@@ -36,14 +36,14 @@ export class CategoryService {
   }
 
   async updateCategory(
-    id: string,
+    id: number,
     data: Partial<Category>
   ): Promise<Category | null> {
     await this.categoryRepository.update(id, data);
     return this.getCategoryById(id);
   }
 
-  async deleteCategory(id: string): Promise<boolean> {
+  async deleteCategory(id: number): Promise<boolean> {
     const result = await this.categoryRepository.delete(id);
     return result.affected !== 0;
   }

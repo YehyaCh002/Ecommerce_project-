@@ -15,18 +15,18 @@ export class DeliveryPlatformService {
     return await this.platformRepository.save(platform);
   }
 
-  async getPlatformById(id: string): Promise<DeliveryPlatform | null> {
+  async getPlatformById(id: number): Promise<DeliveryPlatform | null> {
     return await this.platformRepository.findOne({
       where: { id },
     });
   }
 
-  async updatePlatform(id: string, data: Partial<DeliveryPlatform>): Promise<DeliveryPlatform | null> {
+  async updatePlatform(id: number, data: Partial<DeliveryPlatform>): Promise<DeliveryPlatform | null> {
     await this.platformRepository.update(id, data);
     return this.getPlatformById(id);
   }
 
-  async deletePlatform(id: string): Promise<void> {
+  async deletePlatform(id: number): Promise<void> {
     await this.platformRepository.delete(id);
   }
 }

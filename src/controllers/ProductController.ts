@@ -26,7 +26,7 @@ export class ProductController {
     try {
       const query = req.query as any;
       const filters = {
-        categoryId: query.categoryId as string,
+        categoryId: query.categoryId ? parseInt(query.categoryId as string, 10) : undefined,
         search: query.search as string,
         minPrice: query.minPrice
           ? parseFloat(query.minPrice as string)
@@ -57,7 +57,7 @@ export class ProductController {
   ): Promise<void> => {
     try {
       const { id } = req.params as { id: string };
-      const product = await this.productService.getProductById(id);
+      const product = await this.productService.getProductById(parseInt(id, 10));
       if (!product) {
         res.status(404).send({
           success: false,
@@ -81,7 +81,7 @@ export class ProductController {
     try {
       const { id } = req.params as { id: string };
       const product = await this.productService.updateProduct(
-        id,
+        parseInt(id, 10),
         req.body as any
       );
       if (!product) {
@@ -106,7 +106,7 @@ export class ProductController {
   ): Promise<void> => {
     try {
       const { id } = req.params as { id: string };
-      const deleted = await this.productService.deleteProduct(id);
+      const deleted = await this.productService.deleteProduct(parseInt(id, 10));
       if (!deleted) {
         res.status(404).send({
           success: false,
@@ -131,7 +131,7 @@ export class ProductController {
       const { id } = req.params as { id: string };
       const { quantity } = req.body as { quantity: number };
       const product = await this.productService.updateStock(
-        id,
+        parseInt(id, 10),
         quantity
       );
       if (!product) {

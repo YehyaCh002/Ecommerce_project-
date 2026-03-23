@@ -27,7 +27,7 @@ export class UserController {
   async getUserById(req: FastifyRequest, res: FastifyReply): Promise<void> {
     try {
       const { id } = req.params as { id: string };
-      const user = await this.userService.getUserById(id);
+      const user = await this.userService.getUserById(parseInt(id, 10));
 
       if (!user) {
         res.status(404).send({
@@ -72,7 +72,7 @@ export class UserController {
     try {
       const { id } = req.params as { id: string };
       const userData = req.body as any;
-      const user = await this.userService.updateUser(id, userData);
+      const user = await this.userService.updateUser(parseInt(id, 10), userData);
 
       if (!user) {
         res.status(404).send({
@@ -98,7 +98,7 @@ export class UserController {
   async deleteUser(req: FastifyRequest, res: FastifyReply): Promise<void> {
     try {
       const { id } = req.params as { id: string };
-      const deleted = await this.userService.deleteUser(id);
+      const deleted = await this.userService.deleteUser(parseInt(id, 10));
 
       if (!deleted) {
         res.status(404).send({

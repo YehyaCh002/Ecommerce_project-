@@ -143,13 +143,13 @@ describe('Product Routes Integration Tests', () => {
       expect(response.body.message).toMatch(/Authentication required/);
     });
 
-    it('should return 400 when user-id header is not a valid UUID', async () => {
+    it('should return 400 when user-id header is not a valid integer', async () => {
       const response = await sendRequest(app, {
         method: 'POST',
         url: '/products',
         payload: validProduct,
         headers: {
-          'x-user-id': 'not-a-valid-uuid',
+          'x-user-id': 'not-a-valid-id',
           'x-user-role': 'admin',
         },
       });
@@ -164,7 +164,7 @@ describe('Product Routes Integration Tests', () => {
         url: '/products',
         payload: validProduct,
         headers: {
-          'x-user-id': '00000000-0000-0000-0000-000000000005',
+          'x-user-id': '5',
           'x-user-role': 'customer',
         },
       });

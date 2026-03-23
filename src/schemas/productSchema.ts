@@ -7,7 +7,7 @@ export const createProductSchema = {
       price: { type: 'number', minimum: 0 },
       stock: { type: 'number', minimum: 0 },
       description: { type: 'string' },
-      categoryId: { type: 'string' }
+      categoryId: { type: 'number' }
     }
   }
 };
@@ -20,7 +20,7 @@ export const updateProductSchema = {
       price: { type: 'number', minimum: 0 },
       stock: { type: 'number', minimum: 0 },
       description: { type: 'string' },
-      categoryId: { type: 'string' }
+      categoryId: { type: 'number' }
     }
   }
 };

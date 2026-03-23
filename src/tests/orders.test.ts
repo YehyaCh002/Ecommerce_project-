@@ -1,8 +1,9 @@
 import { FastifyInstance } from 'fastify';
-import { setupTest, sendAuthenticatedRequest, sendAdminRequest } from './test-utils';
+import { setupTest, sendAuthenticatedRequest, sendAdminRequest, sendRequest } from './test-utils';
 
 const mockOrderService = {
   createOrderFromCart: jest.fn(),
+  createGuestOrder: jest.fn(),
   getOrderById: jest.fn(),
   getOrdersByUserId: jest.fn(),
   getAllOrders: jest.fn(),
@@ -24,7 +25,7 @@ jest.mock('../config/data-source', () => ({
 
 describe('Order Routes Integration Tests', () => {
   let app: FastifyInstance;
-  const userId = '00000000-0000-0000-0000-000000000099';
+  const userId = '99';
 
   beforeAll(async () => {
     app = await setupTest();
@@ -64,6 +65,55 @@ describe('Order Routes Integration Tests', () => {
       });
 
       expect(response.status).toBe(400);
+    });
+  });
+
+  describe('POST /orders/quick-order', () => {
+    it('should forward deliveryType and soldFromStore from customerInfo to service', async () => {
+      mockOrderService.createGuestOrder.mockResolvedValueOnce({
+        id: 10,
+        customerName: 'Quick Buyer',
+        deliveryType: 'Bureau',
+        soldFromStore: true,
+      });
+
+      const response = await sendRequest(app, {
+        method: 'POST',
+        url: '/orders/quick-order',
+        payload: {
+          customerInfo: {
+            name: 'Quick Buyer',
+            phoneNumber: '0555000111',
+            deliveryType: 'Bureau',
+            soldFromStore: true,
+          },
+          items: [
+            {
+              productId: '00000000-0000-0000-0000-000000000001',
+              quantity: 1,
+            },
+          ],
+          paymentMethod: 'Cash',
+        },
+      });
+
+      expect(response.status).toBe(201);
+      expect(response.body.success).toBe(true);
+      expect(mockOrderService.createGuestOrder).toHaveBeenCalledWith(
+        expect.objectContaining({
+          name: 'Quick Buyer',
+          phoneNumber: '0555000111',
+          deliveryType: 'Bureau',
+          soldFromStore: true,
+        }),
+        expect.any(Array),
+        'Cash',
+        undefined,
+        undefined,
+        undefined,
+        'Bureau',
+        true
+      );
     });
   });
 
@@ -111,7 +161,7 @@ describe('Order Routes Integration Tests', () => {
       expect(response.status).toBe(200);
       expect(response.body.success).toBe(true);
       expect(response.body.data.isExchange).toBe(true);
-      expect(mockOrderService.updateOrder).toHaveBeenCalledWith(1, { isExchange: true, shippingFee: 500 }, '00000000-0000-0000-0000-000000000001', 'Admin made this an exchange');
+      expect(mockOrderService.updateOrder).toHaveBeenCalledWith(1, { isExchange: true, shippingFee: 500 }, 1, 'Admin made this an exchange');
     });
 
     it('should return 403 if not admin', async () => {

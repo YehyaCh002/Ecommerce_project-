@@ -56,7 +56,7 @@ export class DeliveryPlatformController {
     try {
       const { id } = req.params as { id: string };
       const body = req.body as Partial<DeliveryPlatform>;
-      const platform = await this.platformService.updatePlatform(id, body);
+      const platform = await this.platformService.updatePlatform(parseInt(id, 10), body);
       if (!platform) {
         res.status(404).send({
           success: false,

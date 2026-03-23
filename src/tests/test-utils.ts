@@ -42,7 +42,7 @@ export async function sendAuthenticatedRequest(
     headers?: any;
   }
 ) {
-  const { userId = '00000000-0000-0000-0000-000000000005', role = 'customer', ...rest } = options;
+  const { userId = '5', role = 'customer', ...rest } = options;
   
   return sendRequest(app, {
     ...rest,
@@ -60,7 +60,7 @@ export async function sendAdminRequest(
 ) {
   return sendAuthenticatedRequest(app, {
     ...options,
-    userId: '00000000-0000-0000-0000-000000000001',
+    userId: '1',
     role: 'admin',
   });
 }

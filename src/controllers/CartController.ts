@@ -2,7 +2,7 @@ import { FastifyRequest, FastifyReply } from 'fastify';
 import { CartService } from '../services/CartService';
 
 type AuthRequest = FastifyRequest & {
-  userId?: string;
+  userId?: number;
 };
 
 export class CartController {
@@ -14,7 +14,7 @@ export class CartController {
   ): Promise<void> => {
     try {
       const body = (req.body as any) || {};
-      const userId = req.userId || body.userId;
+      const userId = req.userId || (body.userId ? parseInt(body.userId, 10) : undefined);
       if (!userId) {
         res.status(401).send({
           success: false,
@@ -39,7 +39,7 @@ export class CartController {
   ): Promise<void> => {
     try {
       const body = (req.body as any) || {};
-      const userId = req.userId || body.userId;
+      const userId = req.userId || (body.userId ? parseInt(body.userId, 10) : undefined);
       if (!userId) {
         res.status(401).send({
           success: false,
@@ -48,7 +48,8 @@ export class CartController {
         return;
       }
 
-      const { productId, quantity } = body;
+      const { quantity } = body;
+      const productId = parseInt(body.productId, 10);
       const cart = await this.cartService.addItemToCart(
         userId,
         productId,
@@ -76,7 +77,7 @@ export class CartController {
   ): Promise<void> => {
     try {
       const body = (req.body as any) || {};
-      const userId = req.userId || body.userId;
+      const userId = req.userId || (body.userId ? parseInt(body.userId, 10) : undefined);
       if (!userId) {
         res.status(401).send({
           success: false,
@@ -89,7 +90,7 @@ export class CartController {
       const { itemId } = req.params as { itemId: string };
       const cart = await this.cartService.updateCartItem(
         userId,
-        itemId,
+        parseInt(itemId, 10),
         quantity
       );
       res.status(200).send({
@@ -107,7 +108,7 @@ export class CartController {
   ): Promise<void> => {
     try {
       const body = (req.body as any) || {};
-      const userId = req.userId || body.userId;
+      const userId = req.userId || (body.userId ? parseInt(body.userId, 10) : undefined);
       if (!userId) {
         res.status(401).send({
           success: false,
@@ -119,7 +120,7 @@ export class CartController {
       const { itemId } = req.params as { itemId: string };
       const cart = await this.cartService.removeItemFromCart(
         userId,
-        itemId
+        parseInt(itemId, 10)
       );
       res.status(200).send({
         success: true,
@@ -136,7 +137,7 @@ export class CartController {
   ): Promise<void> => {
     try {
       const body = (req.body as any) || {};
-      const userId = req.userId || body.userId;
+      const userId = req.userId || (body.userId ? parseInt(body.userId, 10) : undefined);
       if (!userId) {
         res.status(401).send({
           success: false,
@@ -161,7 +162,7 @@ export class CartController {
   ): Promise<void> => {
     try {
       const body = (req.body as any) || {};
-      const userId = req.userId || body.userId;
+      const userId = req.userId || (body.userId ? parseInt(body.userId, 10) : undefined);
       if (!userId) {
         res.status(401).send({
           success: false,

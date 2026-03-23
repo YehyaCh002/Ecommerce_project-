@@ -47,7 +47,7 @@ export class CategoryController {
   ): Promise<void> => {
     try {
       const { id } = req.params as { id: string };
-      const category = await this.categoryService.getCategoryById(id);
+      const category = await this.categoryService.getCategoryById(parseInt(id, 10));
       if (!category) {
         res.status(404).send({
           success: false,
@@ -71,7 +71,7 @@ export class CategoryController {
     try {
       const { id } = req.params as { id: string };
       const category = await this.categoryService.updateCategory(
-        id,
+        parseInt(id, 10),
         req.body as any
       );
       if (!category) {
@@ -96,7 +96,7 @@ export class CategoryController {
   ): Promise<void> => {
     try {
       const { id } = req.params as { id: string };
-      const deleted = await this.categoryService.deleteCategory(id);
+      const deleted = await this.categoryService.deleteCategory(parseInt(id, 10));
       if (!deleted) {
         res.status(404).send({
           success: false,

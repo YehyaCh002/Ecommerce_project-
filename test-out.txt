@@ -1,0 +1,122 @@
+
+Running 2 tests using 1 worker
+
+[1A[2K[1/2] e2e\variants.spec.ts:5:7 › Order Variants - API Integration Test › Should reduce stock for specific variant (S) via API
+[1A[2Ke2e\variants.spec.ts:5:7 › Order Variants - API Integration Test › Should reduce stock for specific variant (S) via API
+{
+  statusCode: [33m400[39m,
+  code: [32m'FST_ERR_VALIDATION'[39m,
+  error: [32m'Bad Request'[39m,
+  message: [32m'body/items/0/productId must match format "uuid"'[39m
+}
+
+[1A[2K[2/2] e2e\variants.spec.ts:5:7 › Order Variants - API Integration Test › Should reduce stock for specific variant (S) via API (retry #1)
+[1A[2K{
+  statusCode: [33m400[39m,
+  code: [32m'FST_ERR_VALIDATION'[39m,
+  error: [32m'Bad Request'[39m,
+  message: [32m'body/items/0/productId must match format "uuid"'[39m
+}
+
+[1A[2K  1) e2e\variants.spec.ts:5:7 › Order Variants - API Integration Test › Should reduce stock for specific variant (S) via API 
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+    Expected: [32m201[39m
+    Received: [31m400[39m
+
+      44 |
+      45 |     console.log(await orderResponse.json());
+    > 46 |     expect(orderResponse.status()).toBe(201);
+         |                                    ^
+      47 |
+      48 |     // 3. Verify Stock Change via API
+      49 |     const verifyResponse = await request.get(`/products/${product.id}`);
+        at C:\Users\yahia\OneDrive\Desktop\ecommerce_project\e2e\variants.spec.ts:46:36
+
+    Retry #1 ───────────────────────────────────────────────────────────────────────────────────────
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+    Expected: [32m201[39m
+    Received: [31m400[39m
+
+      44 |
+      45 |     console.log(await orderResponse.json());
+    > 46 |     expect(orderResponse.status()).toBe(201);
+         |                                    ^
+      47 |
+      48 |     // 3. Verify Stock Change via API
+      49 |     const verifyResponse = await request.get(`/products/${product.id}`);
+        at C:\Users\yahia\OneDrive\Desktop\ecommerce_project\e2e\variants.spec.ts:46:36
+
+    attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\variants-Order-Variants----b7c22--specific-variant-S-via-API-retry1\trace.zip
+    Usage:
+
+        npx playwright show-trace test-results\variants-Order-Variants----b7c22--specific-variant-S-via-API-retry1\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[1A[2K[3/2] (retries) e2e\variants.spec.ts:59:7 › Order Variants - API Integration Test › Should fail if variant stock is insufficient
+[1A[2Ke2e\variants.spec.ts:59:7 › Order Variants - API Integration Test › Should fail if variant stock is insufficient
+{
+  statusCode: [33m400[39m,
+  code: [32m'FST_ERR_VALIDATION'[39m,
+  error: [32m'Bad Request'[39m,
+  message: [32m'body/items/0/productId must match format "uuid"'[39m
+}
+
+[1A[2K[4/2] (retries) e2e\variants.spec.ts:59:7 › Order Variants - API Integration Test › Should fail if variant stock is insufficient (retry #1)
+[1A[2K{
+  statusCode: [33m400[39m,
+  code: [32m'FST_ERR_VALIDATION'[39m,
+  error: [32m'Bad Request'[39m,
+  message: [32m'body/items/0/productId must match format "uuid"'[39m
+}
+
+[1A[2K  2) e2e\variants.spec.ts:59:7 › Order Variants - API Integration Test › Should fail if variant stock is insufficient 
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+    Expected: [32mfalse[39m
+    Received: [31mundefined[39m
+
+      88 |     const body = await failResponse.json();
+      89 |     console.log(body);
+    > 90 |     expect(body.success).toBe(false);
+         |                          ^
+      91 |     expect(body.message).toContain('Insufficient stock');
+      92 |   });
+      93 | });
+        at C:\Users\yahia\OneDrive\Desktop\ecommerce_project\e2e\variants.spec.ts:90:26
+
+    Retry #1 ───────────────────────────────────────────────────────────────────────────────────────
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+    Expected: [32mfalse[39m
+    Received: [31mundefined[39m
+
+      88 |     const body = await failResponse.json();
+      89 |     console.log(body);
+    > 90 |     expect(body.success).toBe(false);
+         |                          ^
+      91 |     expect(body.message).toContain('Insufficient stock');
+      92 |   });
+      93 | });
+        at C:\Users\yahia\OneDrive\Desktop\ecommerce_project\e2e\variants.spec.ts:90:26
+
+    attachment #1: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\variants-Order-Variants----c485c-riant-stock-is-insufficient-retry1\trace.zip
+    Usage:
+
+        npx playwright show-trace test-results\variants-Order-Variants----c485c-riant-stock-is-insufficient-retry1\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[1A[2K  2 failed
+    e2e\variants.spec.ts:5:7 › Order Variants - API Integration Test › Should reduce stock for specific variant (S) via API 
+    e2e\variants.spec.ts:59:7 › Order Variants - API Integration Test › Should fail if variant stock is insufficient 

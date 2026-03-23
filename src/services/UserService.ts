@@ -13,7 +13,7 @@ export class UserService {
     return await this.userRepository.find();
   }
 
-  async getUserById(id: string): Promise<User | null> {
+  async getUserById(id: number): Promise<User | null> {
     return await this.userRepository.findOne({ where: { id } });
   }
 
@@ -22,12 +22,12 @@ export class UserService {
     return await this.userRepository.save(user);
   }
 
-  async updateUser(id: string, userData: Partial<User>): Promise<User | null> {
+  async updateUser(id: number, userData: Partial<User>): Promise<User | null> {
     await this.userRepository.update(id, userData);
     return await this.getUserById(id);
   }
 
-  async deleteUser(id: string): Promise<boolean> {
+  async deleteUser(id: number): Promise<boolean> {
     const result = await this.userRepository.delete(id);
     return result.affected !== 0;
   }

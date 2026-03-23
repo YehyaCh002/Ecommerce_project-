@@ -54,7 +54,7 @@ describe('User Routes Integration Tests', () => {
         method: 'GET',
         url: '/users',
         headers: {
-          'x-user-id': '00000000-0000-0000-0000-000000000005',
+          'x-user-id': '5',
           'x-user-role': 'customer',
         },
       });

@@ -14,14 +14,14 @@ export class ProductService {
     stock: number;
     imageUrl?: string;
     sku?: string;
-    categoryId?: string;
+    categoryId?: number;
   }): Promise<Product> {
     const product = this.productRepository.create(data);
     return await this.productRepository.save(product);
   }
 
   async getAllProducts(filters?: {
-    categoryId?: string;
+    categoryId?: number;
     search?: string;
     minPrice?: number;
     maxPrice?: number;
@@ -75,7 +75,7 @@ export class ProductService {
     return await query.orderBy('product.createdAt', 'DESC').getMany();
   }
 
-  async getProductById(id: string): Promise<Product | null> {
+  async getProductById(id: number): Promise<Product | null> {
     return await this.productRepository.findOne({
       where: { id },
       relations: ['category', 'variants'],
@@ -83,19 +83,19 @@ export class ProductService {
   }
 
   async updateProduct(
-    id: string,
+    id: number,
     data: Partial<Product>
   ): Promise<Product | null> {
     await this.productRepository.update(id, data);
     return this.getProductById(id);
   }
 
-  async deleteProduct(id: string): Promise<boolean> {
+  async deleteProduct(id: number): Promise<boolean> {
     const result = await this.productRepository.delete(id);
     return result.affected !== 0;
   }
 
-  async updateStock(id: string, quantity: number): Promise<Product | null> {
+  async updateStock(id: number, quantity: number): Promise<Product | null> {
     const product = await this.getProductById(id);
     if (!product) return null;
 
@@ -103,7 +103,7 @@ export class ProductService {
     return await this.productRepository.save(product);
   }
 
-  async decreaseStock(id: string, quantity: number): Promise<boolean> {
+  async decreaseStock(id: number, quantity: number): Promise<boolean> {
     const product = await this.getProductById(id);
     if (!product || product.stock < quantity) return false;
 
@@ -112,7 +112,7 @@ export class ProductService {
     return true;
   }
 
-  async decreaseVariantStock(variantId: string, quantity: number): Promise<boolean> {
+  async decreaseVariantStock(variantId: number, quantity: number): Promise<boolean> {
     const variant = await this.variantRepository.findOne({ where: { id: variantId } });
     if (!variant || variant.stock < quantity) return false;
 
@@ -121,7 +121,7 @@ export class ProductService {
     return true;
   }
 
-  async updateVariantStock(variantId: string, quantity: number): Promise<ProductVariant | null> {
+  async updateVariantStock(variantId: number, quantity: number): Promise<ProductVariant | null> {
     const variant = await this.variantRepository.findOne({ where: { id: variantId } });
     if (!variant) return null;
 

@@ -130,7 +130,7 @@ describe('Order validation integration behavior', () => {
     mockOrderHistoryRepository.find.mockResolvedValue([]);
     mockOrderHistoryRepository.save.mockResolvedValue({ id: 1 });
 
-    const result = await service.updateOrderStatus(1, OrderStatus.LIVRE, 'admin-id');
+    const result = await service.updateOrderStatus(1, OrderStatus.LIVRE, 1);
 
     expect(result?.status).toBe(OrderStatus.LIVRE);
     expect(result?.isValidated).toBe(true);

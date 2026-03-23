@@ -60,7 +60,7 @@ describe('Delivery Platforms & Order Timers Integration Tests', () => {
         url: '/delivery-platforms',
         payload: { name: 'Test' },
         headers: { 
-          'x-user-id': '00000000-0000-0000-0000-000000000002',
+          'x-user-id': '2',
           'x-user-role': 'customer' 
         }
       });

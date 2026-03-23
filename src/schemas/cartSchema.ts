@@ -3,7 +3,7 @@ export const cartItemSchema = {
     type: 'object',
     required: ['productId', 'quantity'],
     properties: {
-      productId: { type: 'string' },
+      productId: { type: 'number' },
       quantity: { type: 'number', minimum: 1 }
     }
   }

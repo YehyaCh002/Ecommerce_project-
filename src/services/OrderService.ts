@@ -22,7 +22,7 @@ export class OrderService {
   private productService = new ProductService();
 
   async createOrderFromCart(
-    userId: string,
+    userId: number,
     shippingAddress: string,
     paymentMethod: string,
     remark?: string,
@@ -117,7 +117,7 @@ export class OrderService {
       email?: string;
       address?: string;
     },
-    items: { productId: string; quantity: number; variantId?: string }[],
+    items: { productId: number; quantity: number; variantId?: number }[],
     paymentMethod: string,
     remark?: string,
     internalComment?: string,
@@ -251,7 +251,7 @@ export class OrderService {
     return order;
   }
 
-  async getOrdersByUserId(userId: string): Promise<Order[]> {
+  async getOrdersByUserId(userId: number): Promise<Order[]> {
     return await this.orderRepository.find({
       where: { userId },
       relations: ['orderItems', 'orderItems.product', 'customer', 'wilaya', 'assignedTo'],
@@ -277,7 +277,7 @@ export class OrderService {
   async updateOrderStatus(
     id: number,
     status: OrderStatus,
-    changedByUserId?: string,
+    changedByUserId?: number,
     details?: string
   ): Promise<Order | null> {
     const order = await this.getOrderById(id);
@@ -314,8 +314,8 @@ export class OrderService {
 
   async updateOrderDeliveryPlatform(
     id: number,
-    platformId: string,
-    changedByUserId?: string
+    platformId: number,
+    changedByUserId?: number
   ): Promise<Order | null> {
     const order = await this.getOrderById(id);
     if (!order) return null;
@@ -341,7 +341,7 @@ export class OrderService {
   async updateOrder(
     id: number,
     updateData: Partial<Order>,
-    changedByUserId?: string,
+    changedByUserId?: number,
     historyNote?: string
   ): Promise<Order | null> {
     const order = await this.getOrderById(id);
@@ -452,7 +452,7 @@ export class OrderService {
     orderId: number,
     action: OrderAction,
     status?: OrderStatus,
-    changedByUserId?: string,
+    changedByUserId?: number,
     details?: string
   ): Promise<OrderHistory> {
     const history = this.orderHistoryRepository.create({
@@ -465,7 +465,7 @@ export class OrderService {
     return await this.orderHistoryRepository.save(history);
   }
 
-  async cancelOrder(id: number, userId: string): Promise<Order | null> {
+  async cancelOrder(id: number, userId: number): Promise<Order | null> {
     const order = await this.getOrderById(id);
 
     if (!order) {
@@ -502,7 +502,7 @@ export class OrderService {
   async logOrderAction(
     id: number,
     action: OrderAction,
-    changedByUserId?: string,
+    changedByUserId?: number,
     details?: string
   ): Promise<OrderHistory> {
     const order = await this.getOrderById(id);

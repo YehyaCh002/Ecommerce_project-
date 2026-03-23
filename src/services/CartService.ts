@@ -10,7 +10,7 @@ export class CartService {
   private productRepository = AppDataSource.getRepository(Product);
   private userRepository = AppDataSource.getRepository(User);
 
-  async getOrCreateCart(userId: string): Promise<Cart> {
+  async getOrCreateCart(userId: number): Promise<Cart> {
     let cart = await this.cartRepository.findOne({
       where: { userId, isActive: true },
       relations: ['cartItems', 'cartItems.product'],
@@ -30,7 +30,7 @@ export class CartService {
     return cart;
   }
 
-  async getCartByUserId(userId: string): Promise<Cart | null> {
+  async getCartByUserId(userId: number): Promise<Cart | null> {
     return await this.cartRepository.findOne({
       where: { userId, isActive: true },
       relations: ['cartItems', 'cartItems.product', 'cartItems.product.category'],
@@ -38,8 +38,8 @@ export class CartService {
   }
 
   async addItemToCart(
-    userId: string,
-    productId: string,
+    userId: number,
+    productId: number,
     quantity: number
   ): Promise<Cart> {
     const product = await this.productRepository.findOne({
@@ -76,8 +76,8 @@ export class CartService {
   }
 
   async updateCartItem(
-    userId: string,
-    cartItemId: string,
+    userId: number,
+    cartItemId: number,
     quantity: number
   ): Promise<Cart> {
     const cart = await this.getCartByUserId(userId);
@@ -105,8 +105,8 @@ export class CartService {
   }
 
   async removeItemFromCart(
-    userId: string,
-    cartItemId: string
+    userId: number,
+    cartItemId: number
   ): Promise<Cart> {
     const cart = await this.getCartByUserId(userId);
     if (!cart) {
@@ -121,14 +121,14 @@ export class CartService {
     return await this.getCartByUserId(userId) as Cart;
   }
 
-  async clearCart(userId: string): Promise<void> {
+  async clearCart(userId: number): Promise<void> {
     const cart = await this.getCartByUserId(userId);
     if (cart) {
       await this.cartItemRepository.delete({ cartId: cart.id });
     }
   }
 
-  async getCartTotal(userId: string): Promise<number> {
+  async getCartTotal(userId: number): Promise<number> {
     const cart = await this.getCartByUserId(userId);
     if (!cart || !cart.cartItems) return 0;
 

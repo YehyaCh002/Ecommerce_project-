@@ -24,9 +24,9 @@ export const createOrderSchema = {
           type: 'object',
           required: ['productId', 'quantity'],
           properties: {
-            productId: { type: 'string', format: 'uuid' },
+            productId: { type: 'number' },
             quantity: { type: 'number', minimum: 1 },
-            variantId: { type: 'string', format: 'uuid' }
+            variantId: { type: 'number' }
           }
         }
       }
@@ -55,9 +55,9 @@ export const quickOrderSchema = {
           type: 'object',
           required: ['productId', 'quantity'],
           properties: {
-            productId: { type: 'string', format: 'uuid' },
+            productId: { type: 'number' },
             quantity: { type: 'number', minimum: 1 },
-            variantId: { type: 'string', format: 'uuid' }
+            variantId: { type: 'number' }
           }
         }
       },
@@ -94,8 +94,8 @@ export const updateOrderSchema = {
           isFreeShipping: { type: 'boolean' },
           hasInsurance: { type: 'boolean' },
           wilayaId: { type: 'number' },
-          deliveryPlatformId: { type: 'string' },
-          assignedToId: { type: 'string' },
+          deliveryPlatformId: { type: 'number' },
+          assignedToId: { type: 'number' },
           customerEmail: { type: 'string', format: 'email' },
           detailedAddress: { type: 'string' },
           deliveryType: { type: 'string', enum: ['Domicile', 'Bureau', 'Yalidine Desk', 'Stop Desk'] },
