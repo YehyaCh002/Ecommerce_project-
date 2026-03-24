@@ -53,12 +53,12 @@ describe('Cart Routes Integration Tests', () => {
     const itemToAdd = { productId: 'prod-1', quantity: 2 };
 
     it('should return 201 when adding an item to cart', async () => {
-      mockCartService.addItemToCart.mockResolvedValueOnce({ id: 'cart-1', cartItems: [itemToAdd] });
+      mockCartService.addItemToCart.mockResolvedValueOnce({ id: 'cart-1', cartItems: [{ ...itemToAdd, productId: 1 }] });
 
       const response = await sendAuthenticatedRequest(app, {
         method: 'POST',
         url: '/cart/items',
-        payload: itemToAdd,
+        payload: { ...itemToAdd, productId: 1 },
         userId,
       });
 

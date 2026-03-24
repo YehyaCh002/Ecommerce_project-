@@ -46,7 +46,9 @@ export const quickOrderSchema = {
           name: { type: 'string' },
           phoneNumber: { type: 'string' },
           email: { type: 'string', format: 'email' },
-          address: { type: 'string' }
+          address: { type: 'string' },
+          deliveryType: { type: 'string', enum: ['Domicile', 'Bureau', 'Yalidine Desk', 'Stop Desk'] },
+          soldFromStore: { type: 'boolean' }
         }
       },
       items: {

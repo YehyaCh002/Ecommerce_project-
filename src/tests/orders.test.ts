@@ -89,7 +89,7 @@ describe('Order Routes Integration Tests', () => {
           },
           items: [
             {
-              productId: '00000000-0000-0000-0000-000000000001',
+              productId: 1,
               quantity: 1,
             },
           ],
