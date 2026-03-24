@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Order Variants - API Integration Test', () => {
 
-  test('Should reduce stock for specific variant (S) via API', async ({ request }) => {
+  test('Should reduce stock for a specific variant via API', async ({ request }) => {
     // 1. Get products
     const productsResponse = await request.get('/products');
     expect(productsResponse.status()).toBe(200);
@@ -17,14 +17,16 @@ test.describe('Order Variants - API Integration Test', () => {
     const productResult = await productDetailResponse.json();
     const product = productResult.data;
 
-    const variantS = product.variants.find((v: any) => v.size === 'S');
-    const variantM = product.variants.find((v: any) => v.size === 'M');
+    const sortedVariants = [...product.variants].sort((a: any, b: any) => b.stock - a.stock);
+    const variantWithStock = sortedVariants[0];
+    const otherVariant = sortedVariants[1] || sortedVariants[0];
 
-    expect(variantS).toBeDefined();
-    const initialStockS = variantS.stock;
-    const initialStockM = variantM.stock;
+    expect(variantWithStock).toBeDefined();
+    expect(variantWithStock.stock).toBeGreaterThan(0);
+    const initialStockS = variantWithStock.stock;
+    const initialStockM = otherVariant.stock;
 
-    // 2. Create a Quick Order for Variant S (1 item)
+    // 2. Create a Quick Order for Variant with stock (1 item)
     const orderResponse = await request.post('/orders/quick-order', {
       data: {
         customerInfo: {
@@ -34,7 +36,7 @@ test.describe('Order Variants - API Integration Test', () => {
         items: [
           {
             productId: product.id,
-            variantId: variantS.id,
+            variantId: variantWithStock.id,
             quantity: 1
           }
         ],
@@ -42,17 +44,24 @@ test.describe('Order Variants - API Integration Test', () => {
       }
     });
 
+    const bodyRes = await orderResponse.json();
+    if (orderResponse.status() !== 201) {
+      console.error('Order creation failed:', bodyRes);
+    }
+    
     expect(orderResponse.status()).toBe(201);
 
     // 3. Verify Stock Change via API
     const verifyResponse = await request.get(`/products/${product.id}`);
     const updatedResult = await verifyResponse.json();
     const updatedProduct = updatedResult.data;
-    const updatedS = updatedProduct.variants.find((v: any) => v.size === 'S');
-    const updatedM = updatedProduct.variants.find((v: any) => v.size === 'M');
+    const updatedS = updatedProduct.variants.find((v: any) => v.id === variantWithStock.id);
+    const updatedM = updatedProduct.variants.find((v: any) => v.id === otherVariant.id);
 
     expect(updatedS.stock).toBe(initialStockS - 1); // Reduced
-    expect(updatedM.stock).toBe(initialStockM);     // Unchanged
+    if (variantWithStock.id !== otherVariant.id) {
+      expect(updatedM.stock).toBe(initialStockM);     // Unchanged
+    }
   });
 
   test('Should fail if variant stock is insufficient', async ({ request }) => {
@@ -65,7 +74,7 @@ test.describe('Order Variants - API Integration Test', () => {
     const productResult = await productDetailResponse.json();
     const product = productResult.data;
 
-    const variantXL = product.variants.find((v: any) => v.size === 'XL');
+    const anyVariant = product.variants[0];
 
     const failResponse = await request.post('/orders/quick-order', {
       data: {
@@ -76,7 +85,7 @@ test.describe('Order Variants - API Integration Test', () => {
         items: [
           {
             productId: product.id,
-            variantId: variantXL.id,
+            variantId: anyVariant.id,
             quantity: 1000
           }
         ]

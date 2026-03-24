@@ -1,4 +1,4 @@
-import { MigrationInterface, QueryRunner } from "typeorm";
+import type { MigrationInterface, QueryRunner } from "typeorm";
 
 export class AddOrderCancellationFields1774387429369 implements MigrationInterface {
     name = 'AddOrderCancellationFields1774387429369'
