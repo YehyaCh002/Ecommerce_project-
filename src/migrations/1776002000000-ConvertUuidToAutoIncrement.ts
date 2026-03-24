@@ -10,7 +10,6 @@ export class ConvertUuidToAutoIncrement1776002000000
   public async up(queryRunner: QueryRunner): Promise<void> {
     console.log('🚀 Starting UUID to Auto-Increment migration...');
 
-    // Check if categories.id is already integer
     const columnCheck = await queryRunner.query(`
       SELECT data_type 
       FROM information_schema.columns 
