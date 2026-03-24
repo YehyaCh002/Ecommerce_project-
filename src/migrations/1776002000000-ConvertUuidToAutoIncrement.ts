@@ -243,8 +243,8 @@ export class ConvertUuidToAutoIncrement1776002000000
         "isValidated" BOOLEAN NOT NULL DEFAULT false,
         "deliveryType" VARCHAR(50),
         "validationOutcome" VARCHAR(50),
-        "validatedAt" TIMESTAMP,
-        FOREIGN KEY ("wilayaId") REFERENCES wilayas(id) ON DELETE SET NULL,
+        "validatedAt" TIMESTAMP,          "cancellationStatus" "public"."orders_cancellationstatus_enum" NOT NULL DEFAULT 'none',
+          "cancellationReason" TEXT,        FOREIGN KEY ("wilayaId") REFERENCES wilayas(id) ON DELETE SET NULL,
         FOREIGN KEY ("assignedToId") REFERENCES users_new(id) ON DELETE SET NULL,
         FOREIGN KEY ("customerId") REFERENCES customers_new(id) ON DELETE SET NULL,
         FOREIGN KEY ("deliveryPlatformId") REFERENCES delivery_platforms_new(id) ON DELETE SET NULL
@@ -418,7 +418,7 @@ export class ConvertUuidToAutoIncrement1776002000000
         "assignedToId", status, "customerId", "deliveryPlatformId", "internalComment",
         "shippingFee", "isExchange", "exchangePrice", "productToCollect", "isFreeShipping",
         "hasInsurance", "customerEmail", "detailedAddress", "soldFromStore", "isValidated",
-        "deliveryType", "validationOutcome", "validatedAt"
+        "deliveryType", "validationOutcome", "validatedAt", "cancellationStatus", "cancellationReason"
       )
       SELECT
         o.id,
@@ -453,7 +453,9 @@ export class ConvertUuidToAutoIncrement1776002000000
         o."isValidated",
         o."deliveryType"::text,
         o."validationOutcome"::text,
-        o."validatedAt"
+        o."validatedAt",
+        o."cancellationStatus",
+        o."cancellationReason"
       FROM orders o
       LEFT JOIN uuid_mapping_user mu ON o."userId" = mu.old_uuid
       LEFT JOIN uuid_mapping_user mu_assigned ON o."assignedToId" = mu_assigned.old_uuid
