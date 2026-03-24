@@ -47,6 +47,11 @@ export enum ValidationOutcome {
   OTHER = 'other',
 }
 
+export enum CancellationStatus {
+  NONE = 'none',
+  REQUESTED = 'requested',
+  CONFIRMED = 'confirmed',
+}
 
 export enum DeliveryType {
   DOMICILE = 'Domicile',
@@ -114,6 +119,17 @@ export class Order {
     default: OrderStatus.EN_ATTENTE,
   })
   status: OrderStatus;
+
+  // Cancellation Status
+  @Column({
+    type: 'enum',
+    enum: CancellationStatus,
+    default: CancellationStatus.NONE,
+  })
+  cancellationStatus: CancellationStatus;
+
+  @Column({ type: 'text', nullable: true })
+  cancellationReason: string;
 
   // Rating (1-5 stars)
   @Column({ type: 'int', nullable: true })

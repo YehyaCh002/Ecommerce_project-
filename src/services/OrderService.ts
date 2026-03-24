@@ -4,6 +4,7 @@ import {
   OrderStatus,
   DeliveryType,
   ValidationOutcome,
+  CancellationStatus
 } from '../entities/Order';
 import { OrderItem } from '../entities/OrderItem';
 import { OrderHistory, OrderAction } from '../entities/OrderHistory';
@@ -259,8 +260,14 @@ export class OrderService {
     });
   }
 
-  async getAllOrders(): Promise<Order[]> {
+  async getAllOrders(filters?: { cancellationStatus?: CancellationStatus }): Promise<Order[]> {
+    const where: any = {};
+    if (filters?.cancellationStatus) {
+      where.cancellationStatus = filters.cancellationStatus;
+    }
+
     return await this.orderRepository.find({
+      where,
       relations: ['orderItems', 'orderItems.product', 'customer', 'wilaya', 'assignedTo'],
       order: { createdAt: 'DESC' },
     });
@@ -497,6 +504,93 @@ export class OrderService {
     }
 
     return this.updateOrderStatus(id, OrderStatus.ANNULE, userId, 'Order cancelled by user');
+  }
+
+  async requestCancellation(id: number, reason?: string, userId?: number): Promise<Order | null> {
+    const order = await this.getOrderById(id);
+
+    if (!order) {
+      throw new Error('Order not found');
+    }
+
+    if (
+      order.status === OrderStatus.VERS_LA_WILAYA ||
+      order.status === OrderStatus.LIVRE
+    ) {
+      throw new Error('Cannot request cancellation for shipped or delivered orders');
+    }
+
+    order.cancellationStatus = CancellationStatus.REQUESTED;
+    if (reason) {
+      order.cancellationReason = reason;
+    }
+
+    const savedOrder = await this.orderRepository.save(order);
+
+    if (userId) {
+      await this.logOrderAction(id, OrderAction.STATUS_UPDATED, userId, `Cancellation requested: ${reason || 'No reason provided'}`);
+    }
+
+    return savedOrder;
+  }
+
+  async confirmCancellation(id: number, userId?: number): Promise<Order | null> {
+    const order = await this.getOrderById(id);
+
+    if (!order) {
+      throw new Error('Order not found');
+    }
+
+    if (order.cancellationStatus !== CancellationStatus.REQUESTED) {
+      throw new Error('Order is not in requested cancellation state');
+    }
+
+    // Restore stock
+    for (const item of order.orderItems) {
+      const product = await this.productService.getProductById(
+        item.productId
+      );
+      if (product) {
+        await this.productService.updateStock(
+          product.id,
+          product.stock + item.quantity
+        );
+      }
+    }
+
+    order.cancellationStatus = CancellationStatus.CONFIRMED;
+    order.status = OrderStatus.ANNULE;
+
+    const savedOrder = await this.orderRepository.save(order);
+
+    if (userId) {
+      await this.logOrderAction(id, OrderAction.CANCELLED, userId, 'Cancellation request confirmed');
+    }
+
+    return savedOrder;
+  }
+
+  async rejectCancellation(id: number, userId?: number): Promise<Order | null> {
+    const order = await this.getOrderById(id);
+
+    if (!order) {
+      throw new Error('Order not found');
+    }
+
+    if (order.cancellationStatus !== CancellationStatus.REQUESTED) {
+      throw new Error('Order is not in requested cancellation state');
+    }
+
+    order.cancellationStatus = CancellationStatus.NONE;
+    order.cancellationReason = null as any;
+
+    const savedOrder = await this.orderRepository.save(order);
+
+    if (userId) {
+      await this.logOrderAction(id, OrderAction.STATUS_UPDATED, userId, 'Cancellation request rejected');
+    }
+
+    return savedOrder;
   }
 
   async logOrderAction(

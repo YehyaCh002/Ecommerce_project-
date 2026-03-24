@@ -157,7 +157,12 @@ export class OrderController {
         return;
       }
 
-      const orders = await this.orderService.getAllOrders();
+      const query = (req.query as any) || {};
+      const filters = {
+        cancellationStatus: query.cancellationStatus
+      };
+
+      const orders = await this.orderService.getAllOrders(filters);
       res.status(200).send({
         success: true,
         data: orders,
@@ -312,6 +317,81 @@ export class OrderController {
 
       const { id } = req.params as { id: string };
       const order = await this.orderService.cancelOrder(parseInt(id), userId);
+      res.status(200).send({
+        success: true,
+        data: order,
+      });
+    } catch (error) {
+      throw error;
+    }
+  };
+
+  requestCancellation = async (
+    req: AuthRequest,
+    res: FastifyReply
+  ): Promise<void> => {
+    try {
+      const { id } = req.params as { id: string };
+      const body = (req.body as any) || {};
+      const userId = req.userId || (body.userId ? parseInt(body.userId, 10) : undefined);
+      
+      const order = await this.orderService.requestCancellation(parseInt(id), body.reason, userId);
+      res.status(200).send({
+        success: true,
+        data: order,
+      });
+    } catch (error) {
+      throw error;
+    }
+  };
+
+  confirmCancellation = async (
+    req: AuthRequest,
+    res: FastifyReply
+  ): Promise<void> => {
+    try {
+      const { id } = req.params as { id: string };
+      const body = (req.body as any) || {};
+      const userRole = req.userRole || body.userRole;
+      const userId = req.userId || (body.userId ? parseInt(body.userId, 10) : undefined);
+
+      if (userRole !== 'admin') {
+        res.status(403).send({
+          success: false,
+          message: 'Admin access required',
+        });
+        return;
+      }
+
+      const order = await this.orderService.confirmCancellation(parseInt(id), userId);
+      res.status(200).send({
+        success: true,
+        data: order,
+      });
+    } catch (error) {
+      throw error;
+    }
+  };
+
+  rejectCancellation = async (
+    req: AuthRequest,
+    res: FastifyReply
+  ): Promise<void> => {
+    try {
+      const { id } = req.params as { id: string };
+      const body = (req.body as any) || {};
+      const userRole = req.userRole || body.userRole;
+      const userId = req.userId || (body.userId ? parseInt(body.userId, 10) : undefined);
+
+      if (userRole !== 'admin') {
+        res.status(403).send({
+          success: false,
+          message: 'Admin access required',
+        });
+        return;
+      }
+
+      const order = await this.orderService.rejectCancellation(parseInt(id), userId);
       res.status(200).send({
         success: true,
         data: order,

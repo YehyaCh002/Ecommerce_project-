@@ -46,6 +46,24 @@ export default async function orderRoutes(fastify: FastifyInstance) {
     (request, reply) => orderController.cancelOrder(request, reply)
   );
 
+  fastify.post(
+    '/:id/cancel-request',
+    { preHandler: [authenticate] },
+    (request, reply) => orderController.requestCancellation(request, reply)
+  );
+
+  fastify.post(
+    '/:id/cancel-confirm',
+    { preHandler: [authenticate, requireAdmin] },
+    (request, reply) => orderController.confirmCancellation(request, reply)
+  );
+
+  fastify.post(
+    '/:id/cancel-reject',
+    { preHandler: [authenticate, requireAdmin] },
+    (request, reply) => orderController.rejectCancellation(request, reply)
+  );
+
   // Admin routes
   fastify.get(
     '/',
