@@ -60,7 +60,14 @@ jobs:
           DB_NAME: ecommerce
         run: |
           # 1. Run Migrations
-          npx ts-node node_modules/typeorm/cli.js migration:run -d src/config/data-source.ts
+          npm run migration:run
+
+          # 1.1 Verify duplicate-order column exists (fail fast if migration did not apply)
+          npx ts-node node_modules/typeorm/cli.js query "SELECT column_name FROM information_schema.columns WHERE table_name = 'orders' AND column_name = 'isPotentialDuplicate';" -d src/config/data-source.ts | grep -q "isPotentialDuplicate"
+
+          # 1.2 Show migration status for easier CI debugging
+          npm run migration:show
+
           # 2. Fix Sequence (to avoid duplicate ID errors during tests)
           npx ts-node node_modules/typeorm/cli.js query "SELECT setval(pg_get_serial_sequence('orders', 'id'), coalesce(max(id),0) + 1, false) FROM orders;" -d src/config/data-source.ts
           # 3. Seed Variants
