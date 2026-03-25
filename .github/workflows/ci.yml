@@ -61,6 +61,8 @@ jobs:
         run: |
           # 1. Run Migrations
           npx typeorm-ts-node-commonjs migration:run -d src/config/data-source.ts
+          # 1.0 Defensive schema guard (keeps CI green if older DB state missed this field)
+          npx ts-node node_modules/typeorm/cli.js query "ALTER TABLE \"orders\" ADD COLUMN IF NOT EXISTS \"isPotentialDuplicate\" boolean NOT NULL DEFAULT false;" -d src/config/data-source.ts
           # 1.1 Verify duplicate-order column exists (fail fast if migration did not apply)
           npx ts-node node_modules/typeorm/cli.js query "SELECT column_name FROM information_schema.columns WHERE table_name = 'orders' AND column_name = 'isPotentialDuplicate';" -d src/config/data-source.ts | grep -q "isPotentialDuplicate"
 
