@@ -1,4 +1,5 @@
 import { AppDataSource } from '../config/data-source';
+import { In, MoreThanOrEqual } from 'typeorm';
 import {
   Order,
   OrderStatus,
@@ -21,6 +22,26 @@ export class OrderService {
   private platformRepository = AppDataSource.getRepository(DeliveryPlatform);
   private cartService = new CartService();
   private productService = new ProductService();
+
+  private async checkIsPotentialDuplicate(phoneNumber: string): Promise<boolean> {
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    const existingOrder = await this.orderRepository.findOne({
+      where: {
+        phoneNumber,
+        createdAt: MoreThanOrEqual(yesterday),
+        status: In([
+          OrderStatus.EN_ATTENTE,
+          OrderStatus.NON_REPONDU_1ERE,
+          OrderStatus.CONFIRME,
+          OrderStatus.OTP_CONFIRME,
+        ]),
+      },
+    });
+
+    return !!existingOrder;
+  }
 
   async createOrderFromCart(
     userId: number,
@@ -58,12 +79,15 @@ export class OrderService {
     // Final total including shipping fee
     const finalTotalPrice = totalPrice + Number(shippingFee);
 
+    const phoneNumber = '0000000000'; // TODO: Fetch real phone from user entity
+    const isPotentialDuplicate = await this.checkIsPotentialDuplicate(phoneNumber);
+
     // Get user info for customer name and phone (you may need to adjust this)
     // For now, using placeholder values - you should fetch from user entity
     const order = this.orderRepository.create({
       userId,
       customerName: 'Customer', // TODO: Fetch from user entity
-      phoneNumber: '0000000000', // TODO: Fetch from user entity
+      phoneNumber,
       totalPrice: finalTotalPrice,
       shippingAddress,
       paymentMethod,
@@ -75,6 +99,7 @@ export class OrderService {
       deliveryType,
       soldFromStore,
       status: OrderStatus.EN_ATTENTE,
+      isPotentialDuplicate,
       source: 'Website' as any,
     });
 
@@ -86,8 +111,20 @@ export class OrderService {
       OrderAction.CREATED,
       OrderStatus.EN_ATTENTE,
       userId,
-      'Order was placed successfully.'
+      isPotentialDuplicate
+        ? 'Order was placed successfully. Potential duplicate detected.'
+        : 'Order was placed successfully.'
     );
+
+    if (isPotentialDuplicate) {
+      await this.addOrderHistory(
+        savedOrder.id,
+        OrderAction.POTENTIAL_DUPLICATE,
+        OrderStatus.EN_ATTENTE,
+        userId,
+        'System detected another active order from the same phone number within 24 hours.'
+      );
+    }
 
     // Create order items and decrease stock
     for (const cartItem of cart.cartItems) {
@@ -173,6 +210,10 @@ export class OrderService {
     }
 
     // 3. Create Order
+    const isPotentialDuplicate = await this.checkIsPotentialDuplicate(
+      customer.phoneNumber
+    );
+
     const order = this.orderRepository.create({
       customerId: customer.id,
       customerName: customer.name,
@@ -188,6 +229,7 @@ export class OrderService {
       deliveryType,
       soldFromStore,
       status: OrderStatus.EN_ATTENTE,
+      isPotentialDuplicate,
       source: 'Website' as any,
     });
 
@@ -203,8 +245,20 @@ export class OrderService {
       OrderAction.CREATED,
       OrderStatus.EN_ATTENTE,
       undefined,
-      'Order was placed from landing page.'
+      isPotentialDuplicate
+        ? 'Order was placed from landing page. Potential duplicate detected.'
+        : 'Order was placed from landing page.'
     );
+
+    if (isPotentialDuplicate) {
+      await this.addOrderHistory(
+        savedOrder.id,
+        OrderAction.POTENTIAL_DUPLICATE,
+        OrderStatus.EN_ATTENTE,
+        undefined,
+        'System detected another active order from the same phone number within 24 hours.'
+      );
+    }
 
     // 6. Create order items and decrease stock
     for (const item of validatedItems) {
@@ -260,10 +314,16 @@ export class OrderService {
     });
   }
 
-  async getAllOrders(filters?: { cancellationStatus?: CancellationStatus }): Promise<Order[]> {
+  async getAllOrders(filters?: {
+    cancellationStatus?: CancellationStatus;
+    isPotentialDuplicate?: boolean;
+  }): Promise<Order[]> {
     const where: any = {};
     if (filters?.cancellationStatus) {
       where.cancellationStatus = filters.cancellationStatus;
+    }
+    if (filters?.isPotentialDuplicate !== undefined) {
+      where.isPotentialDuplicate = filters.isPotentialDuplicate;
     }
 
     return await this.orderRepository.find({

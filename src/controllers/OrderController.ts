@@ -159,7 +159,13 @@ export class OrderController {
 
       const query = (req.query as any) || {};
       const filters = {
-        cancellationStatus: query.cancellationStatus
+        cancellationStatus: query.cancellationStatus,
+        isPotentialDuplicate:
+          query.isPotentialDuplicate === 'true'
+            ? true
+            : query.isPotentialDuplicate === 'false'
+            ? false
+            : undefined,
       };
 
       const orders = await this.orderService.getAllOrders(filters);

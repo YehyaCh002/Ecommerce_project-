@@ -62,6 +62,7 @@ function buildOrder(overrides: Partial<Order> = {}): Order {
     deliveryType: DeliveryType.DOMICILE,
     soldFromStore: false,
     isValidated: false,
+    isPotentialDuplicate: false,
     validationOutcome: null,
     validatedAt: null,
     customerName: 'Client Test',

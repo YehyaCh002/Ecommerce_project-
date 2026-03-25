@@ -85,6 +85,9 @@ export class Order {
   @Column({ type: 'boolean', default: false })
   isValidated: boolean;
 
+  @Column({ type: 'boolean', default: false })
+  isPotentialDuplicate: boolean;
+
   @Column({
     type: 'enum',
     enum: ValidationOutcome,

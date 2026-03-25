@@ -22,8 +22,7 @@ export enum OrderAction {
   TRANSFER = 'Transfert',
   CANCELLED = 'Annulé',
   DELIVERY_ASSIGNED = 'Livraison Assignée',
-  EXCHANGE = 'Échange',
-}
+  EXCHANGE = 'Échange',  POTENTIAL_DUPLICATE = 'Doublon Potentiel DetectÃ©',}
 
 @Entity('order_history')
 @Index(['orderId'])
