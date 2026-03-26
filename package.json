@@ -15,6 +15,7 @@
     "migration:show": "npm run typeorm -- migration:show -d src/config/data-source.ts",
     "migration:verify": "ts-node-dev src/scripts/verify-migration.ts",
     "db:rebuild": "ts-node-dev src/scripts/rebuild-database.ts",
+    "db:seed": "ts-node-dev --transpile-only src/scripts/seed-database.ts",
     "db:backup": "pg_dump -U postgres -h localhost -d ecommerce -f backup_%date:~-4,4%%date:~-10,2%%date:~-7,2%.sql",
     "db:inspect": "ts-node-dev src/scripts/inspect-database.ts",
     "docker:dev": "docker-compose up -d",
