@@ -1,12 +1,15 @@
 import { OrderService } from '../services/OrderService';
 
-// Mock repository واحد نستخدموه لكل شيء
+// Mock repository كامل
 const mockRepoInstance = {
   find: jest.fn().mockResolvedValue([]),
   findOne: jest.fn().mockResolvedValue(null),
   update: jest.fn().mockResolvedValue({ affected: 1 }),
-  save: jest.fn().mockImplementation((x) => Promise.resolve({ id: 1, ...x })),
-  create: jest.fn().mockImplementation((x) => ({ ...x })),
+  create: jest.fn((x) => ({ ...x })),
+  save: jest.fn(async (x) => ({
+    id: 1,
+    ...x,
+  })),
   count: jest.fn().mockResolvedValue(0),
 };
 
@@ -52,7 +55,7 @@ describe('Wilaya Tracking Service Integration Tests', () => {
   });
 
   describe('addTrackingLog', () => {
-    it('updates order tracking fields', async () => {
+    it('updates order tracking fields and returns log', async () => {
       const result = await service.addTrackingLog(
         555,
         'Reçu à Wilaya',
@@ -62,11 +65,14 @@ describe('Wilaya Tracking Service Integration Tests', () => {
         'System'
       );
 
-      expect(result).toBeDefined();
-      expect(result.status).toBe('Reçu à Wilaya');
-
+      // ✅ تأكد أن update و save تم استدعاؤهم
       expect(mockRepoInstance.update).toHaveBeenCalled();
       expect(mockRepoInstance.save).toHaveBeenCalled();
+
+      // ✅ تأكد من النتيجة
+      expect(result).toBeDefined();
+      expect(result.status).toBe('Reçu à Wilaya');
+      expect(result.orderId).toBe(555);
     });
   });
 });
