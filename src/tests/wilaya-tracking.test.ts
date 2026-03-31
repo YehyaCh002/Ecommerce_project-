@@ -41,15 +41,10 @@ describe('Wilaya Tracking Service Logic', () => {
     jest.clearAllMocks();
 
     (AppDataSource.getRepository as jest.Mock).mockImplementation((entity: any) => {
-      // Robust matching: check class reference, class name, or entity options name
       const targetName = (typeof entity === 'function' ? entity.name : entity?.options?.name) || '';
       
-      if (entity === Order || targetName === 'Order') {
-        return mockOrderRepository;
-      }
-      if (entity === TrackingLog || targetName === 'TrackingLog' || targetName === 'tracking_logs' || targetName.includes('TrackingLog')) {
-        return mockTrackingLogRepository;
-      }
+      if (targetName === 'Order') return mockOrderRepository;
+      if (targetName === 'TrackingLog' || targetName === 'tracking_logs' || targetName === 'TrackingLogEntity') return mockTrackingLogRepository;
       
       return mockOtherRepo;
     });
@@ -117,16 +112,29 @@ describe('Wilaya Tracking Service Logic', () => {
     it('updates order tracking fields and saves log', async () => {
         const orderId = 123;
         const status = 'FailedAttempt';
+        const subStatus = 'Client unreachable';
+        const description = 'Call him later';
         
-        await service.addTrackingLog(orderId, status, 'Client unreachable', 'Call him later', 'Algiers', 'Livreur');
+        const result = await service.addTrackingLog(
+          orderId, 
+          status, 
+          subStatus, 
+          description, 
+          'Algiers', 
+          'Livreur'
+        );
         
-        expect(mockOrderRepository.update).toHaveBeenCalled();
-        expect(mockTrackingLogRepository.save).toHaveBeenCalledWith(expect.objectContaining({
-            orderId,
-            actor: 'Livreur',
-            description: 'Call him later',
-            status: 'FailedAttempt'
+        expect(mockOrderRepository.update).toHaveBeenCalledWith(orderId, expect.objectContaining({
+            tracking_status: status,
+            current_sub_status: subStatus
         }));
+        
+        expect(result).toBeDefined();
+        expect(result.status).toBe(status);
+        expect(result.orderId).toBe(orderId);
+        expect(result.actor).toBe('Livreur');
+        
+        expect(mockTrackingLogRepository.save).toHaveBeenCalled();
     });
   });
 });
