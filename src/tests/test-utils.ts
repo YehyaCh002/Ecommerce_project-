@@ -1,15 +1,15 @@
 import { FastifyInstance } from 'fastify';
 import { buildApp } from '../app';
+import { AppDataSource } from '../config/data-source';
 
 export async function initializeDataSource() {
-  const { AppDataSource } = require('../config/data-source');
   if (!AppDataSource.isInitialized) {
     await AppDataSource.initialize();
   }
+  return AppDataSource;
 }
 
 export async function destroyDataSource() {
-  const { AppDataSource } = require('../config/data-source');
   if (AppDataSource.isInitialized) {
     await AppDataSource.destroy();
   }

@@ -40,3 +40,5 @@ export const AppDataSource = new DataSource({
   ],
   subscribers: [],
 });
+
+export default AppDataSource;

@@ -20,7 +20,16 @@ jest.mock('../config/data-source', () => ({
   AppDataSource: {
     getRepository: jest.fn(),
     isInitialized: true,
+    initialize: jest.fn().mockResolvedValue(true),
+    destroy: jest.fn().mockResolvedValue(true),
   },
+  __esModule: true,
+  default: {
+    getRepository: jest.fn(),
+    isInitialized: true,
+    initialize: jest.fn().mockResolvedValue(true),
+    destroy: jest.fn().mockResolvedValue(true),
+  }
 }));
 
 // ─────────────────────────────────────────────────────────────────────────────

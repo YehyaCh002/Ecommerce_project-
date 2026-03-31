@@ -22,7 +22,16 @@ describe('Wilaya Tracking Service Integration Tests', () => {
   });
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    jest.resetAllMocks();
+    
+    // Set up mock implementations that might have been reset
+    mockRepoInstance.find.mockResolvedValue([]);
+    mockRepoInstance.findOne.mockResolvedValue(null);
+    mockRepoInstance.update.mockResolvedValue({ affected: 1 });
+    mockRepoInstance.count.mockResolvedValue(0);
+    mockRepoInstance.create.mockImplementation((x) => ({ ...x }));
+    mockRepoInstance.save.mockImplementation((x) => Promise.resolve({ id: 1, ...x }));
+
     service = new OrderService(
       mockRepoInstance as any,
       mockRepoInstance as any,

@@ -43,7 +43,17 @@ const mockProductService = {
 jest.mock('../config/data-source', () => ({
   AppDataSource: {
     getRepository: jest.fn(),
+    isInitialized: true,
+    initialize: jest.fn().mockResolvedValue(true),
+    destroy: jest.fn().mockResolvedValue(true),
   },
+  __esModule: true,
+  default: {
+    getRepository: jest.fn(),
+    isInitialized: true,
+    initialize: jest.fn().mockResolvedValue(true),
+    destroy: jest.fn().mockResolvedValue(true),
+  }
 }));
 
 jest.mock('../services/CartService', () => ({
@@ -124,7 +134,8 @@ describe('Order Cancellation Integration', () => {
   });
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    jest.resetAllMocks();
+
     (AppDataSource.getRepository as jest.Mock).mockImplementation((entity) => {
       const name = entity?.name;
       if (name === 'Order') return mockOrderRepository;
@@ -138,6 +149,10 @@ describe('Order Cancellation Integration', () => {
     mockOrderHistoryRepository.create.mockImplementation((payload: any) => payload);
     mockOrderRepository.create.mockImplementation((payload: any) => payload);
     mockOrderItemRepository.create.mockImplementation((payload: any) => payload);
+    mockOrderRepository.save.mockImplementation(async (o: any) => o);
+    mockOrderHistoryRepository.save.mockResolvedValue({ id: 1 });
+    mockProductService.getProductById.mockResolvedValue({ id: 10, stock: 5 });
+    mockProductService.updateStock.mockResolvedValue({});
 
     orderService = new OrderService();
   });

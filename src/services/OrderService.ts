@@ -810,6 +810,7 @@ export class OrderService {
       last_status_change_at: new Date(),
     });
 
-    return await this.trackingLogRepository.save(log);
+    const savedLog = await this.trackingLogRepository.save(log);
+    return savedLog;
   }
 }

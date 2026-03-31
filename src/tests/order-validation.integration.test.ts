@@ -35,7 +35,17 @@ const mockPlatformRepository = {
 jest.mock('../config/data-source', () => ({
   AppDataSource: {
     getRepository: jest.fn(),
+    isInitialized: true,
+    initialize: jest.fn().mockResolvedValue(true),
+    destroy: jest.fn().mockResolvedValue(true),
   },
+  __esModule: true,
+  default: {
+    getRepository: jest.fn(),
+    isInitialized: true,
+    initialize: jest.fn().mockResolvedValue(true),
+    destroy: jest.fn().mockResolvedValue(true),
+  }
 }));
 
 jest.mock('../services/CartService', () => ({
@@ -119,7 +129,7 @@ describe('Order validation integration behavior', () => {
   });
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    jest.resetAllMocks();
 
     (AppDataSource.getRepository as jest.Mock).mockImplementation((entity: any) => {
       const name = entity?.name;
@@ -130,6 +140,10 @@ describe('Order validation integration behavior', () => {
       if (name === 'DeliveryPlatform') return mockPlatformRepository;
       return {};
     });
+
+    mockOrderHistoryRepository.save.mockResolvedValue({ id: 1 });
+    mockOrderRepository.update.mockResolvedValue({ affected: 1 });
+    mockOrderRepository.save.mockImplementation(async (order: any) => order);
 
     service = new OrderService();
   });

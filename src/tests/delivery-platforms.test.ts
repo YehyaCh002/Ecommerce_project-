@@ -12,6 +12,22 @@ const mockOrderService = {
   getOrderById: jest.fn(),
 };
 
+jest.mock('../config/data-source', () => ({
+  AppDataSource: {
+    getRepository: jest.fn(),
+    isInitialized: true,
+    initialize: jest.fn().mockResolvedValue(true),
+    destroy: jest.fn().mockResolvedValue(true),
+  },
+  __esModule: true,
+  default: {
+    getRepository: jest.fn(),
+    isInitialized: true,
+    initialize: jest.fn().mockResolvedValue(true),
+    destroy: jest.fn().mockResolvedValue(true),
+  }
+}));
+
 jest.mock('../services/DeliveryPlatformService', () => ({
   DeliveryPlatformService: jest.fn().mockImplementation(() => mockPlatformService),
 }));
@@ -19,7 +35,6 @@ jest.mock('../services/DeliveryPlatformService', () => ({
 jest.mock('../services/OrderService', () => ({
   OrderService: jest.fn().mockImplementation(() => ({
     ...mockOrderService,
-    // Add other mocks if needed to avoid breakage
   })),
 }));
 
