@@ -154,7 +154,16 @@ describe('Order Cancellation Integration', () => {
     mockProductService.getProductById.mockResolvedValue({ id: 10, stock: 5 });
     mockProductService.updateStock.mockResolvedValue({});
 
-    orderService = new OrderService();
+    orderService = new OrderService(
+      mockOrderRepository,
+      mockOrderItemRepository,
+      mockOrderHistoryRepository,
+      mockCustomerRepository,
+      mockPlatformRepository,
+      {} as any,
+      {} as any,
+      mockProductService
+    );
   });
 
   describe('requestCancellation', () => {

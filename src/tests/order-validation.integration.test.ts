@@ -145,7 +145,16 @@ describe('Order validation integration behavior', () => {
     mockOrderRepository.update.mockResolvedValue({ affected: 1 });
     mockOrderRepository.save.mockImplementation(async (order: any) => order);
 
-    service = new OrderService();
+    service = new OrderService(
+      mockOrderRepository,
+      mockOrderItemRepository,
+      mockOrderHistoryRepository,
+      mockCustomerRepository,
+      mockPlatformRepository,
+      {} as any,
+      {} as any,
+      {} as any
+    );
   });
 
   it('sets validated=true and outcome=received when status becomes LIVRE', async () => {
