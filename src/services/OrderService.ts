@@ -11,6 +11,7 @@ import { OrderItem } from '../entities/OrderItem';
 import { OrderHistory, OrderAction } from '../entities/OrderHistory';
 import { Customer } from '../entities/Customer';
 import { DeliveryPlatform } from '../entities/DeliveryPlatform';
+import { TrackingLog } from '../entities/TrackingLog';
 import { CartService } from './CartService';
 import { ProductService } from './ProductService';
 
@@ -20,6 +21,7 @@ export class OrderService {
   private orderHistoryRepository = AppDataSource.getRepository(OrderHistory);
   private customerRepository = AppDataSource.getRepository(Customer);
   private platformRepository = AppDataSource.getRepository(DeliveryPlatform);
+  private trackingLogRepository = AppDataSource.getRepository(TrackingLog);
   private cartService = new CartService();
   private productService = new ProductService();
 
@@ -699,5 +701,95 @@ export class OrderService {
       nonConfirmedOrders,
       confirmationRate: parseFloat(confirmationRate.toFixed(2)),
     };
+  }
+
+  async getWilayaTrackingOrders(): Promise<any[]> {
+    const trackingStatuses = ['En Localisation', 'Reçu à Wilaya', 'Tentative Échouée'];
+    const generalStatuses = [OrderStatus.RECU_A_LA_WILAYA];
+
+    // Get orders that are currently in the customer's wilaya or in localization
+    const orders = await this.orderRepository.find({
+      where: [
+        { tracking_status: In(trackingStatuses) },
+        { current_sub_status: In(trackingStatuses) },
+        { status: In(generalStatuses) }
+      ],
+      relations: ['customer', 'wilaya', 'deliveryPlatform', 'trackingLogs'],
+      order: { last_status_change_at: 'ASC' } // Older entries first (higher priority to call)
+    });
+
+    const now = new Date();
+
+    return orders.map((order) => {
+      const lastChange = order.last_status_change_at || order.updatedAt || order.createdAt;
+      const hoursDiff = (now.getTime() - lastChange.getTime()) / (1000 * 60 * 60);
+
+      let agingColor: 'green' | 'yellow' | 'orange' | 'red' = 'green';
+      if (hoursDiff > 48) {
+        agingColor = 'red';
+      } else if (hoursDiff > 24) {
+        agingColor = 'yellow';
+      }
+
+      // Attempts count logic: count logs mentioning "Tentative Échouée"
+      const attemptsCount =
+        order.trackingLogs?.filter(
+          (log) =>
+            (log.status && log.status.includes('Échouée')) ||
+            (log.sub_status && log.sub_status.includes('Échouée')) ||
+            (log.description && log.description.includes('Tentative'))
+        ).length || 0;
+
+      // Extract livreur remarks from logs
+      // Assuming actor contains "Livreur" or description mentions it
+      const livreurRemarks = order.trackingLogs
+        ?.filter(
+          (log) =>
+            log.actor === 'Livreur' ||
+            (log.description && log.description.toLowerCase().includes('livreur'))
+        )
+        .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime()) // Newest first
+        .map((log) => ({
+          text: log.description,
+          date: log.timestamp,
+          location: log.location
+        }));
+
+      return {
+        ...order,
+        agingColor,
+        agingHours: Math.floor(hoursDiff),
+        attemptsCount,
+        recentLivreurRemarks: livreurRemarks,
+        lastFailureReason: order.trackingLogs?.find(l => l.sub_status?.includes('Échouée'))?.description || order.remark
+      };
+    });
+  }
+
+  async addTrackingLog(
+    orderId: number,
+    status: string,
+    subStatus?: string,
+    description?: string,
+    location?: string,
+    actor?: string
+  ): Promise<TrackingLog> {
+    const log = this.trackingLogRepository.create({
+      orderId,
+      status,
+      sub_status: subStatus,
+      description,
+      location,
+      actor,
+    });
+
+    // Update order's current tracking status cache
+    await this.orderRepository.update(orderId, {
+      tracking_status: status,
+      current_sub_status: subStatus,
+      last_status_change_at: new Date(),
+    });
+
+    return await this.trackingLogRepository.save(log);
   }
 }

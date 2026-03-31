@@ -16,6 +16,7 @@ import { OrderItem } from './OrderItem';
 import { Wilaya } from './Wilaya';
 import { OrderHistory } from './OrderHistory';
 import { DeliveryPlatform } from './DeliveryPlatform';
+import { TrackingLog } from './TrackingLog';
 
 export enum OrderStatus {
   EN_ATTENTE = 'En attente',
@@ -138,13 +139,23 @@ export class Order {
   @Column({ type: 'int', nullable: true })
   rating: number;
 
-  // Source of the Order
   @Column({
     type: 'enum',
     enum: OrderSource,
     default: OrderSource.OTHER,
   })
   source: OrderSource;
+
+  // Tracking & Failure Management
+  @Column({ type: 'varchar', length: 100, nullable: true })
+  tracking_status: string;
+
+  @Column({ type: 'varchar', length: 100, nullable: true })
+  current_sub_status: string;
+
+  @Column({ type: 'timestamp', nullable: true })
+  @Index()
+  last_status_change_at: Date | null;
 
   // Tracking Number
   @Column({ type: 'varchar', length: 100, nullable: true })
@@ -245,6 +256,11 @@ export class Order {
     cascade: true,
   })
   history: OrderHistory[];
+
+  @OneToMany(() => TrackingLog, (log) => log.order, {
+    cascade: true,
+  })
+  trackingLogs: TrackingLog[];
 
   // Timestamps
   @CreateDateColumn()

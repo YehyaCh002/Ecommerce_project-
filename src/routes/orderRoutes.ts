@@ -99,6 +99,18 @@ export default async function orderRoutes(fastify: FastifyInstance) {
   );
   
   fastify.get(
+    '/wilaya-tracking',
+    { preHandler: [authenticate, requireAdmin] },
+    (request, reply) => orderController.getWilayaTrackingOrders(request, reply)
+  );
+
+  fastify.post(
+    '/:id/tracking-log',
+    { preHandler: [authenticate, requireAdmin] },
+    (request, reply) => orderController.addTrackingLog(request, reply)
+  );
+
+  fastify.get(
     '/stats/confirmation',
     { preHandler: [authenticate, requireAdmin] },
     (request, reply) => orderController.getConfirmationStats(request, reply)

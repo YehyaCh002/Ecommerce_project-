@@ -467,4 +467,70 @@ export class OrderController {
       });
     }
   };
+
+  getWilayaTrackingOrders = async (
+    req: AuthRequest,
+    res: FastifyReply
+  ): Promise<void> => {
+    try {
+      const body = (req.body as any) || {};
+      const userRole = req.userRole || body.userRole;
+      if (userRole !== 'admin') {
+        res.status(403).send({
+          success: false,
+          message: 'Admin access required',
+        });
+        return;
+      }
+
+      const orders = await this.orderService.getWilayaTrackingOrders();
+      res.status(200).send({
+        success: true,
+        data: orders,
+        count: orders.length,
+      });
+    } catch (error) {
+      res.status(500).send({
+        success: false,
+        message: 'Failed to fetch wilaya tracking orders',
+      });
+    }
+  };
+
+  addTrackingLog = async (
+    req: AuthRequest,
+    res: FastifyReply
+  ): Promise<void> => {
+    try {
+      const { id } = req.params as { id: string };
+      const { status, subStatus, description, location, actor } = req.body as any;
+
+      if (!status) {
+        res.status(400).send({
+          success: false,
+          message: 'Status is required',
+        });
+        return;
+      }
+
+      const log = await this.orderService.addTrackingLog(
+        parseInt(id),
+        status,
+        subStatus,
+        description,
+        location,
+        actor
+      );
+
+      res.status(201).send({
+        success: true,
+        data: log,
+      });
+    } catch (error) {
+      res.status(400).send({
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to add tracking log',
+      });
+    }
+  };
 }
