@@ -1,16 +1,20 @@
 import { OrderService } from '../services/OrderService';
 
-// Mock repository كامل
 const mockRepoInstance = {
-  find: jest.fn().mockResolvedValue([]),
-  findOne: jest.fn().mockResolvedValue(null),
-  update: jest.fn().mockResolvedValue({ affected: 1 }),
+  find: jest.fn(),
+  findOne: jest.fn(),
+  update: jest.fn(),
+  count: jest.fn(),
+
   create: jest.fn((x) => ({ ...x })),
-  save: jest.fn(async (x) => ({
-    id: 1,
-    ...x,
-  })),
-  count: jest.fn().mockResolvedValue(0),
+
+  // ✅ مهم: يرجع object حقيقي
+  save: jest.fn((x) =>
+    Promise.resolve({
+      id: 1,
+      ...x,
+    })
+  ),
 };
 
 describe('Wilaya Tracking Service Integration Tests', () => {
@@ -69,10 +73,10 @@ describe('Wilaya Tracking Service Integration Tests', () => {
       expect(mockRepoInstance.update).toHaveBeenCalled();
       expect(mockRepoInstance.save).toHaveBeenCalled();
 
-      // ✅ تأكد من النتيجة
+      // ✅ النتيجة ترجع object صحيح
       expect(result).toBeDefined();
-      expect(result.status).toBe('Reçu à Wilaya');
-      expect(result.orderId).toBe(555);
+      expect(result?.status).toBe('Reçu à Wilaya');
+      expect(result?.orderId).toBe(555);
     });
   });
 });
