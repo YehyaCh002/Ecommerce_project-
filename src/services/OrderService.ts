@@ -16,14 +16,14 @@ import { CartService } from './CartService';
 import { ProductService } from './ProductService';
 
 export class OrderService {
-  private orderRepository = AppDataSource.getRepository(Order);
-  private orderItemRepository = AppDataSource.getRepository(OrderItem);
-  private orderHistoryRepository = AppDataSource.getRepository(OrderHistory);
-  private customerRepository = AppDataSource.getRepository(Customer);
-  private platformRepository = AppDataSource.getRepository(DeliveryPlatform);
-  private trackingLogRepository = AppDataSource.getRepository(TrackingLog);
-  private cartService = new CartService();
-  private productService = new ProductService();
+  orderRepository: any;
+  orderItemRepository: any;
+  orderHistoryRepository: any;
+  customerRepository: any;
+  platformRepository: any;
+  trackingLogRepository: any;
+  cartService: any;
+  productService: any;
 
   constructor(
     orderRepository?: any,
@@ -94,7 +94,7 @@ export class OrderService {
     }
 
     // Calculate total
-    const totalPrice = cart.cartItems.reduce((total, item) => {
+    const totalPrice = cart.cartItems.reduce((total: number, item: { product: { price: any; }; quantity: number; }) => {
       return total + Number(item.product.price) * item.quantity;
     }, 0);
 
@@ -216,7 +216,7 @@ export class OrderService {
 
       let variant = null;
       if (item.variantId) {
-        variant = product.variants?.find((v) => v.id === item.variantId);
+        variant = product.variants?.find((v: { id: number | undefined; }) => v.id === item.variantId);
         if (!variant) throw new Error(`Variant not found for product: ${product.name}`);
         if (variant.stock < item.quantity) {
           throw new Error(`Insufficient stock for ${product.name} (Size/Color variant)`);
@@ -740,7 +740,7 @@ export class OrderService {
 
     const now = new Date();
 
-    return orders.map((order) => {
+    return orders.map((order: { last_status_change_at: any; updatedAt: any; createdAt: any; trackingLogs: { filter: (arg0: { (log: any): any; (log: any): any; }) => { (): any; new(): any; length: number; sort: { (arg0: (a: any, b: any) => number): any[]; new(): any; }; }; find: (arg0: (l: any) => any) => { (): any; new(): any; description: any; }; }; remark: any; }) => {
       const lastChange = order.last_status_change_at || order.updatedAt || order.createdAt;
       const hoursDiff = (now.getTime() - lastChange.getTime()) / (1000 * 60 * 60);
 
