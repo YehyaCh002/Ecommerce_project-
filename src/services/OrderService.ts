@@ -25,6 +25,26 @@ export class OrderService {
   private cartService = new CartService();
   private productService = new ProductService();
 
+  constructor(
+    orderRepository?: any,
+    orderItemRepository?: any,
+    orderHistoryRepository?: any,
+    customerRepository?: any,
+    platformRepository?: any,
+    trackingLogRepository?: any,
+    cartService?: any,
+    productService?: any
+  ) {
+    if (orderRepository) this.orderRepository = orderRepository;
+    if (orderItemRepository) this.orderItemRepository = orderItemRepository;
+    if (orderHistoryRepository) this.orderHistoryRepository = orderHistoryRepository;
+    if (customerRepository) this.customerRepository = customerRepository;
+    if (platformRepository) this.platformRepository = platformRepository;
+    if (trackingLogRepository) this.trackingLogRepository = trackingLogRepository;
+    if (cartService) this.cartService = cartService;
+    if (productService) this.productService = productService;
+  }
+
   private async checkIsPotentialDuplicate(phoneNumber: string): Promise<boolean> {
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
