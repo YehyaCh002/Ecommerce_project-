@@ -1,5 +1,5 @@
 import { FastifyInstance } from 'fastify';
-import { setupTest, sendRequest, sendAdminRequest } from './test-utils';
+import { setupTest, teardownTest, sendRequest, sendAdminRequest } from './test-utils';
 
 const mockCategoryService = {
   getAllCategories: jest.fn(),

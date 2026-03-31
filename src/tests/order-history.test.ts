@@ -1,5 +1,5 @@
 import { FastifyInstance } from 'fastify';
-import { setupTest, sendAdminRequest } from './test-utils';
+import { setupTest, teardownTest, sendAdminRequest } from './test-utils';
 import { OrderAction } from '../entities/OrderHistory';
 import { OrderStatus } from '../entities/Order';
 

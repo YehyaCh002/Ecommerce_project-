@@ -1,5 +1,5 @@
 import { FastifyInstance } from 'fastify';
-import { setupTest, sendAdminRequest, sendRequest } from './test-utils';
+import { setupTest, teardownTest, sendAdminRequest, sendRequest } from './test-utils';
 
 const mockPlatformService = {
   getAllPlatforms: jest.fn(),

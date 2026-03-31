@@ -1,37 +1,37 @@
 import { OrderService } from '../services/OrderService';
+import { initializeDataSource, destroyDataSource } from './test-utils';
 
 const mockRepoInstance = {
   find: jest.fn(),
   findOne: jest.fn(),
   update: jest.fn(),
   count: jest.fn(),
-
   create: jest.fn((x) => ({ ...x })),
-
-  // ✅ مهم: يرجع object حقيقي
-  save: jest.fn((x) =>
-    Promise.resolve({
-      id: 1,
-      ...x,
-    })
-  ),
+  save: jest.fn((x) => Promise.resolve({ id: 1, ...x })),
 };
 
 describe('Wilaya Tracking Service Integration Tests', () => {
   let service: OrderService;
 
+  beforeAll(async () => {
+    await initializeDataSource();
+  });
+
+  afterAll(async () => {
+    await destroyDataSource();
+  });
+
   beforeEach(() => {
     jest.clearAllMocks();
-
     service = new OrderService(
-      mockRepoInstance as any, // orderRepository
-      mockRepoInstance as any, // orderItemRepository
-      mockRepoInstance as any, // orderHistoryRepository
-      mockRepoInstance as any, // customerRepository
-      mockRepoInstance as any, // platformRepository
-      mockRepoInstance as any, // trackingLogRepository
-      {} as any, // cartService
-      {} as any  // productService
+      mockRepoInstance as any,
+      mockRepoInstance as any,
+      mockRepoInstance as any,
+      mockRepoInstance as any,
+      mockRepoInstance as any,
+      mockRepoInstance as any,
+      {} as any,
+      {} as any
     );
   });
 
@@ -69,11 +69,11 @@ describe('Wilaya Tracking Service Integration Tests', () => {
         'System'
       );
 
-      // ✅ تأكد أن update و save تم استدعاؤهم
+      // Verify update and save were called
       expect(mockRepoInstance.update).toHaveBeenCalled();
       expect(mockRepoInstance.save).toHaveBeenCalled();
 
-      // ✅ النتيجة ترجع object صحيح
+      // Verify correct object returned
       expect(result).toBeDefined();
       expect(result?.status).toBe('Reçu à Wilaya');
       expect(result?.orderId).toBe(555);

@@ -35,14 +35,14 @@ export class OrderService {
     cartService?: any,
     productService?: any
   ) {
-    if (orderRepository) this.orderRepository = orderRepository;
-    if (orderItemRepository) this.orderItemRepository = orderItemRepository;
-    if (orderHistoryRepository) this.orderHistoryRepository = orderHistoryRepository;
-    if (customerRepository) this.customerRepository = customerRepository;
-    if (platformRepository) this.platformRepository = platformRepository;
-    if (trackingLogRepository) this.trackingLogRepository = trackingLogRepository;
-    if (cartService) this.cartService = cartService;
-    if (productService) this.productService = productService;
+    this.orderRepository = orderRepository || AppDataSource.getRepository(Order);
+    this.orderItemRepository = orderItemRepository || AppDataSource.getRepository(OrderItem);
+    this.orderHistoryRepository = orderHistoryRepository || AppDataSource.getRepository(OrderHistory);
+    this.customerRepository = customerRepository || AppDataSource.getRepository(Customer);
+    this.platformRepository = platformRepository || AppDataSource.getRepository(DeliveryPlatform);
+    this.trackingLogRepository = trackingLogRepository || AppDataSource.getRepository(TrackingLog);
+    this.cartService = cartService || new CartService();
+    this.productService = productService || new ProductService();
   }
 
   private async checkIsPotentialDuplicate(phoneNumber: string): Promise<boolean> {

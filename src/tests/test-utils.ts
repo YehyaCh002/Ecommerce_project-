@@ -1,11 +1,31 @@
 import { FastifyInstance } from 'fastify';
 import { buildApp } from '../app';
 
+export async function initializeDataSource() {
+  const { AppDataSource } = require('../config/data-source');
+  if (!AppDataSource.isInitialized) {
+    await AppDataSource.initialize();
+  }
+}
+
+export async function destroyDataSource() {
+  const { AppDataSource } = require('../config/data-source');
+  if (AppDataSource.isInitialized) {
+    await AppDataSource.destroy();
+  }
+}
+
 export async function setupTest() {
+  await initializeDataSource();
   const app = await buildApp();
   await app.ready();
   
   return app;
+}
+
+export async function teardownTest(app: FastifyInstance) {
+  await app.close();
+  await destroyDataSource();
 }
 
 export async function sendRequest(
@@ -64,4 +84,3 @@ export async function sendAdminRequest(
     role: 'admin',
   });
 }
-

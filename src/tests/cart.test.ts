@@ -1,5 +1,5 @@
 import { FastifyInstance } from 'fastify';
-import { setupTest, sendAuthenticatedRequest } from './test-utils';
+import { setupTest, teardownTest, sendAuthenticatedRequest } from './test-utils';
 
 const mockCartService = {
   getCartByUserId: jest.fn(),
