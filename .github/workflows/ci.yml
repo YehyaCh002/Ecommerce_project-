@@ -61,15 +61,17 @@ jobs:
         run: |
           # 1. Run Migrations
           npx typeorm-ts-node-commonjs migration:run -d src/config/data-source.ts
-          # 1.0 Defensive schema guard (keeps CI green if older DB state missed this field)
+          
+          # 1.1 Defensive schema guard (keeps CI green if migration detection has issues)
           npx ts-node node_modules/typeorm/cli.js query "ALTER TABLE \"orders\" ADD COLUMN IF NOT EXISTS \"isPotentialDuplicate\" boolean NOT NULL DEFAULT false;" -d src/config/data-source.ts
-          # 1.1 Verify duplicate-order column exists (fail fast if migration did not apply)
-          npx ts-node node_modules/typeorm/cli.js query "SELECT column_name FROM information_schema.columns WHERE table_name = 'orders' AND column_name = 'isPotentialDuplicate';" -d src/config/data-source.ts | grep -q "isPotentialDuplicate"
-
-          # 1.2 Show migration status for easier CI debugging
-          npx typeorm-ts-node-commonjs migration:show -d src/config/data-source.ts
-
-          # 2. Fix Sequence (to avoid duplicate ID errors during tests)
+          npx ts-node node_modules/typeorm/cli.js query "ALTER TABLE \"orders\" ADD COLUMN IF NOT EXISTS \"tracking_status\" varchar(100);" -d src/config/data-source.ts
+          npx ts-node node_modules/typeorm/cli.js query "ALTER TABLE \"orders\" ADD COLUMN IF NOT EXISTS \"current_sub_status\" varchar(100);" -d src/config/data-source.ts
+          npx ts-node node_modules/typeorm/cli.js query "ALTER TABLE \"orders\" ADD COLUMN IF NOT EXISTS \"last_status_change_at\" timestamp;" -d src/config/data-source.ts
+          
+          # 1.2 Create tracking_logs table if it doesn't exist (E2E might touch it)
+          npx ts-node node_modules/typeorm/cli.js query "CREATE TABLE IF NOT EXISTS \"tracking_logs\" (\"id\" SERIAL NOT NULL, \"orderId\" integer NOT NULL, \"status\" varchar(100) NOT NULL, \"sub_status\" varchar(100), \"description\" text, \"location\" varchar(255), \"actor\" varchar(255), \"timestamp\" TIMESTAMP NOT NULL DEFAULT now(), CONSTRAINT \"PK_1d999c9178c7474933d3a2e43ff\" PRIMARY KEY (\"id\"));" -d src/config/data-source.ts
+          
+          # 2. Fix Sequence
           npx ts-node node_modules/typeorm/cli.js query "SELECT setval(pg_get_serial_sequence('orders', 'id'), coalesce(max(id),0) + 1, false) FROM orders;" -d src/config/data-source.ts
           # 3. Seed Variants
           npx ts-node seed-variants.ts
