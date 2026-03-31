@@ -11,8 +11,8 @@ const mockOrderRepository = {
 };
 
 const mockTrackingLogRepository = {
-  create: jest.fn((payload) => payload),
-  save: jest.fn((payload) => Promise.resolve({ id: 1, ...payload, timestamp: new Date() })),
+  create: jest.fn().mockImplementation((p) => ({ ...p })),
+  save: jest.fn().mockImplementation((p) => Promise.resolve({ id: 1, ...p, timestamp: new Date() })),
 };
 
 const mockOtherRepo = {
@@ -41,9 +41,16 @@ describe('Wilaya Tracking Service Logic', () => {
     jest.clearAllMocks();
 
     (AppDataSource.getRepository as jest.Mock).mockImplementation((entity: any) => {
-      const name = typeof entity === 'function' ? entity.name : entity?.options?.name;
-      if (name === 'Order') return mockOrderRepository;
-      if (name === 'TrackingLog') return mockTrackingLogRepository;
+      // Robust matching: check class reference, class name, or entity options name
+      const targetName = (typeof entity === 'function' ? entity.name : entity?.options?.name) || '';
+      
+      if (entity === Order || targetName === 'Order') {
+        return mockOrderRepository;
+      }
+      if (entity === TrackingLog || targetName === 'TrackingLog' || targetName === 'tracking_logs' || targetName.includes('TrackingLog')) {
+        return mockTrackingLogRepository;
+      }
+      
       return mockOtherRepo;
     });
 
@@ -109,7 +116,7 @@ describe('Wilaya Tracking Service Logic', () => {
   describe('addTrackingLog', () => {
     it('updates order tracking fields and saves log', async () => {
         const orderId = 123;
-        const status = 'Tentative Échouée';
+        const status = 'FailedAttempt';
         
         await service.addTrackingLog(orderId, status, 'Client unreachable', 'Call him later', 'Algiers', 'Livreur');
         
@@ -117,7 +124,8 @@ describe('Wilaya Tracking Service Logic', () => {
         expect(mockTrackingLogRepository.save).toHaveBeenCalledWith(expect.objectContaining({
             orderId,
             actor: 'Livreur',
-            description: 'Call him later'
+            description: 'Call him later',
+            status: 'FailedAttempt'
         }));
     });
   });

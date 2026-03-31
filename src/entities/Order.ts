@@ -148,10 +148,10 @@ export class Order {
 
   // Tracking & Failure Management
   @Column({ type: 'varchar', length: 100, nullable: true })
-  tracking_status: string;
+  tracking_status: string | null;
 
   @Column({ type: 'varchar', length: 100, nullable: true })
-  current_sub_status: string;
+  current_sub_status: string | null;
 
   @Column({ type: 'timestamp', nullable: true })
   @Index()

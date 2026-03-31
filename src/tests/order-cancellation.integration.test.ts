@@ -96,15 +96,19 @@ function buildOrder(overrides: Partial<Order> = {}): Order {
     shippingFee: 0,
     remark: null as any,
     internalComment: null as any,
+    tracking_status: null as any,
+    current_sub_status: null as any,
+    last_status_change_at: null as any,
     elapsedMinutes: 0,
     counterColor: 'green',
     calculateTimers: () => {},
     orderItems: [],
     history: [],
+    trackingLogs: [],
     createdAt: new Date(),
     updatedAt: new Date(),
     ...overrides,
-  };
+  } as Order;
 }
 
 describe('Order Cancellation Integration', () => {
