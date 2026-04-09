@@ -1,10 +1,11 @@
+import { describe, it, expect, beforeAll, afterAll, beforeEach, jest } from '@jest/globals';
 import { OrderService } from '../services/OrderService';
 import { DeliveryType, Order, OrderStatus, OrderSource, CancellationStatus } from '../entities/Order';
 import { OrderHistory, OrderAction } from '../entities/OrderHistory';
 import { AppDataSource } from '../config/data-source';
 import { initializeDataSource, destroyDataSource } from './test-utils';
 
-const mockOrderRepository = {
+const mockOrderRepository: Record<string, jest.Mock> = {
   findOne: jest.fn(),
   update: jest.fn(),
   save: jest.fn(),
@@ -12,28 +13,28 @@ const mockOrderRepository = {
   create: jest.fn(),
 };
 
-const mockOrderItemRepository = {
+const mockOrderItemRepository: Record<string, jest.Mock> = {
   create: jest.fn(),
   save: jest.fn(),
 };
 
-const mockOrderHistoryRepository = {
+const mockOrderHistoryRepository: Record<string, jest.Mock> = {
   create: jest.fn((payload) => payload),
   save: jest.fn(),
   find: jest.fn(),
 };
 
-const mockCustomerRepository = {
+const mockCustomerRepository: Record<string, jest.Mock> = {
   findOne: jest.fn(),
   create: jest.fn(),
   save: jest.fn(),
 };
 
-const mockPlatformRepository = {
+const mockPlatformRepository: Record<string, jest.Mock> = {
   findOne: jest.fn(),
 };
 
-const mockProductService = {
+const mockProductService: Record<string, jest.Mock> = {
   getProductById: jest.fn(),
   updateStock: jest.fn(),
   decreaseStock: jest.fn(),
@@ -44,15 +45,15 @@ jest.mock('../config/data-source', () => ({
   AppDataSource: {
     getRepository: jest.fn(),
     isInitialized: true,
-    initialize: jest.fn().mockResolvedValue(true),
-    destroy: jest.fn().mockResolvedValue(true),
+    initialize: jest.fn(async () => true),
+    destroy: jest.fn(async () => true),
   },
   __esModule: true,
   default: {
     getRepository: jest.fn(),
     isInitialized: true,
-    initialize: jest.fn().mockResolvedValue(true),
-    destroy: jest.fn().mockResolvedValue(true),
+    initialize: jest.fn(async () => true),
+    destroy: jest.fn(async () => true),
   }
 }));
 
@@ -136,7 +137,7 @@ describe('Order Cancellation Integration', () => {
   beforeEach(() => {
     jest.resetAllMocks();
 
-    (AppDataSource.getRepository as jest.Mock).mockImplementation((entity) => {
+    (AppDataSource.getRepository as jest.Mock).mockImplementation((entity: any) => {
       const name = entity?.name;
       if (name === 'Order') return mockOrderRepository;
       if (name === 'OrderHistory') return mockOrderHistoryRepository;
@@ -150,9 +151,9 @@ describe('Order Cancellation Integration', () => {
     mockOrderRepository.create.mockImplementation((payload: any) => payload);
     mockOrderItemRepository.create.mockImplementation((payload: any) => payload);
     mockOrderRepository.save.mockImplementation(async (o: any) => o);
-    mockOrderHistoryRepository.save.mockResolvedValue({ id: 1 });
-    mockProductService.getProductById.mockResolvedValue({ id: 10, stock: 5 });
-    mockProductService.updateStock.mockResolvedValue({});
+    mockOrderHistoryRepository.save.mockReturnValue(Promise.resolve({ id: 1 }));
+    mockProductService.getProductById.mockReturnValue(Promise.resolve({ id: 10, stock: 5 }));
+    mockProductService.updateStock.mockReturnValue(Promise.resolve({}));
 
     orderService = new OrderService(
       mockOrderRepository,
@@ -170,9 +171,9 @@ describe('Order Cancellation Integration', () => {
     it('should set cancellationStatus to requested and record the reason', async () => {
       const order = buildOrder({ status: OrderStatus.CONFIRME });
       mockOrderRepository.findOne
-        .mockResolvedValueOnce(order)
-        .mockResolvedValueOnce(order);
-      mockOrderHistoryRepository.find.mockResolvedValue([]);
+        .mockReturnValueOnce(Promise.resolve(order))
+        .mockReturnValueOnce(Promise.resolve(order));
+      mockOrderHistoryRepository.find.mockReturnValue(Promise.resolve([]));
       mockOrderRepository.save.mockImplementationOnce(async (o) => o);
 
       await orderService.requestCancellation(1, 'No longer needed', 99);
@@ -189,7 +190,7 @@ describe('Order Cancellation Integration', () => {
 
     it('should throw an error if the order is already shipped', async () => {
       const order = buildOrder({ status: OrderStatus.VERS_LA_WILAYA });
-      mockOrderRepository.findOne.mockResolvedValueOnce(order);
+      mockOrderRepository.findOne.mockReturnValueOnce(Promise.resolve(order));
 
       await expect(orderService.requestCancellation(1, 'reason')).rejects.toThrow(
         'Cannot request cancellation for shipped or delivered orders'
@@ -204,12 +205,12 @@ describe('Order Cancellation Integration', () => {
         cancellationStatus: CancellationStatus.REQUESTED,
         orderItems: [{ productId: 10, quantity: 2 } as any],
       });
-      mockOrderRepository.findOne.mockResolvedValueOnce(order).mockResolvedValueOnce(order);
-      mockOrderHistoryRepository.find.mockResolvedValue([]);
+      mockOrderRepository.findOne.mockReturnValueOnce(Promise.resolve(order)).mockReturnValueOnce(Promise.resolve(order));
+      mockOrderHistoryRepository.find.mockReturnValue(Promise.resolve([]));
       mockOrderRepository.save.mockImplementationOnce(async (o) => o);
 
-      mockProductService.getProductById.mockResolvedValueOnce({ id: 10, stock: 5 });
-      mockProductService.updateStock.mockResolvedValueOnce({});
+      mockProductService.getProductById.mockReturnValueOnce(Promise.resolve({ id: 10, stock: 5 }));
+      mockProductService.updateStock.mockReturnValueOnce(Promise.resolve({}));
 
       await orderService.confirmCancellation(1, 1);
 
@@ -230,8 +231,8 @@ describe('Order Cancellation Integration', () => {
         cancellationStatus: CancellationStatus.REQUESTED,
         cancellationReason: 'No money',
       });
-      mockOrderRepository.findOne.mockResolvedValueOnce(order).mockResolvedValueOnce(order);
-      mockOrderHistoryRepository.find.mockResolvedValue([]);
+      mockOrderRepository.findOne.mockReturnValueOnce(Promise.resolve(order)).mockReturnValueOnce(Promise.resolve(order));
+      mockOrderHistoryRepository.find.mockReturnValue(Promise.resolve([]));
       mockOrderRepository.save.mockImplementationOnce(async (o) => o);
 
       await orderService.rejectCancellation(1, 1);

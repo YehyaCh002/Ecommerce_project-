@@ -88,6 +88,13 @@ const productsSeed: ProductSeed[] = [
     sku: 'CAP-STR-001',
     categoryName: 'Accessories',
   },
+  {
+    name: 'Bla bla',
+    description: '........',
+    price: 1800,
+    sku: 'CAP-STR-002',
+    categoryName: 'Accessories',
+  },
 ];
 
 const variantsSeed: VariantSeed[] = [

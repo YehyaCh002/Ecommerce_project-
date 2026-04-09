@@ -20,7 +20,7 @@ console.log('Connecting to:', {
   host: process.env.DB_HOST || 'localhost',
   port: process.env.DB_PORT || '5432',
   user: process.env.DB_USER || 'postgres',
-  db: process.env.DB_NAME || 'ecommerce'
+  db: process.env.DB_NAME || 'ecommerces'
 });
 
 export const AppDataSource = new DataSource({
