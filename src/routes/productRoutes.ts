@@ -12,8 +12,18 @@ export default async function productRoutes(fastify: FastifyInstance) {
 
   // Admin routes
   fastify.post(
-    '/addProd',
+    '/',
     { 
+      preHandler: [authenticate, requireAdmin],
+      schema: createProductSchema
+    },
+    (request, reply) => productController.createProduct(request, reply)
+  );
+
+  // Backward-compatible alias for older clients.
+  fastify.post(
+    '/addProd',
+    {
       preHandler: [authenticate, requireAdmin],
       schema: createProductSchema
     },

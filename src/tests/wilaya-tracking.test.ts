@@ -1,36 +1,28 @@
+import { describe, it, expect, beforeEach, jest } from '@jest/globals';
 import { OrderService } from '../services/OrderService';
-import { initializeDataSource, destroyDataSource } from './test-utils';
 
-const mockRepoInstance = {
+const mockRepoInstance: Record<string, jest.Mock> = {
   find: jest.fn(),
   findOne: jest.fn(),
   update: jest.fn(),
   count: jest.fn(),
-  create: jest.fn((x) => ({ ...x })),
-  save: jest.fn((x) => Promise.resolve({ id: 1, ...x })),
+  create: jest.fn((x: any) => ({ ...x })),
+  save: jest.fn((x: any) => Promise.resolve({ id: 1, ...x })),
 };
 
 describe('Wilaya Tracking Service Integration Tests', () => {
   let service: OrderService;
 
-  beforeAll(async () => {
-    await initializeDataSource();
-  });
-
-  afterAll(async () => {
-    await destroyDataSource();
-  });
-
   beforeEach(() => {
     jest.resetAllMocks();
     
     // Set up mock implementations that might have been reset
-    mockRepoInstance.find.mockResolvedValue([]);
-    mockRepoInstance.findOne.mockResolvedValue(null);
-    mockRepoInstance.update.mockResolvedValue({ affected: 1 });
-    mockRepoInstance.count.mockResolvedValue(0);
-    mockRepoInstance.create.mockImplementation((x) => ({ ...x }));
-    mockRepoInstance.save.mockImplementation((x) => Promise.resolve({ id: 1, ...x }));
+    mockRepoInstance.find.mockReturnValue(Promise.resolve([]));
+    mockRepoInstance.findOne.mockReturnValue(Promise.resolve(null));
+    mockRepoInstance.update.mockReturnValue(Promise.resolve({ affected: 1 }));
+    mockRepoInstance.count.mockReturnValue(Promise.resolve(0));
+    mockRepoInstance.create.mockImplementation((x: any) => ({ ...x }));
+    mockRepoInstance.save.mockImplementation((x: any) => Promise.resolve({ id: 1, ...x }));
 
     service = new OrderService(
       mockRepoInstance as any,
@@ -48,7 +40,7 @@ describe('Wilaya Tracking Service Integration Tests', () => {
     it('returns orders with calculated aging color', async () => {
       const now = new Date();
 
-      mockRepoInstance.find.mockResolvedValue([
+      mockRepoInstance.find.mockReturnValue(Promise.resolve([
         {
           id: 101,
           tracking_status: 'En Localisation',
@@ -57,7 +49,7 @@ describe('Wilaya Tracking Service Integration Tests', () => {
           updatedAt: now,
           createdAt: now,
         },
-      ]);
+      ]));
 
       const result = await service.getWilayaTrackingOrders();
 
