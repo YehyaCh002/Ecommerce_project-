@@ -708,6 +708,52 @@ export class OrderController {
     }
   };
 
+  getVenteStockStatistics = async (
+    req: AuthRequest,
+    res: FastifyReply
+  ): Promise<void> => {
+    try {
+      const body = (req.body as any) || {};
+      const userRole = req.userRole || body.userRole;
+      if (userRole !== 'admin') {
+        res.status(403).send({
+          success: false,
+          message: 'Admin access required',
+        });
+        return;
+      }
+
+      const query = (req.query as any) || {};
+      const statuses = query.statuses
+        ? String(query.statuses)
+            .split(',')
+            .map((value) => value.trim())
+            .filter(Boolean)
+        : undefined;
+
+      const data = await this.orderService.getVenteStockStatistics({
+        statuses,
+        startDate: query.startDate,
+        endDate: query.endDate,
+        categorySearch: query.categorySearch,
+        productSearch: query.productSearch,
+      });
+
+      res.status(200).send({
+        success: true,
+        data,
+      });
+    } catch (error) {
+      res.status(500).send({
+        success: false,
+        message:
+          error instanceof Error
+            ? error.message
+            : 'Failed to fetch vente stock statistics',
+      });
+    }
+  };
+
   getWilayaTrackingOrders = async (
     req: AuthRequest,
     res: FastifyReply

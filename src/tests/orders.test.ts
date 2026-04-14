@@ -11,6 +11,7 @@ const mockOrderService = {
   getCommandesStatistics: jest.fn(),
   getRetoursStatistics: jest.fn(),
   getEchecsStatistics: jest.fn(),
+  getVenteStockStatistics: jest.fn(),
   updateOrderStatus: jest.fn(),
   updateOrder: jest.fn(),
   cancelOrder: jest.fn(),
@@ -314,6 +315,54 @@ describe('Order Routes Integration Tests', () => {
       const response = await sendAuthenticatedRequest(app, {
         method: 'GET',
         url: '/orders/stats/echecs',
+        userId,
+      });
+
+      expect(response.status).toBe(403);
+    });
+
+    it('should return vente stock statistics for admin and forward query', async () => {
+      mockOrderService.getVenteStockStatistics.mockResolvedValueOnce({
+        summary: {
+          productsCount: 1,
+          totalItemsSold: 3,
+          totalBoxesSold: 2,
+          totalRevenue: 1990,
+        },
+        rows: [
+          {
+            productId: 555,
+            productName: 'Shark',
+            quantitySold: 3,
+            boxesSold: 2,
+            purchasePrice: 700,
+            salesRevenue: 1990,
+          },
+        ],
+        count: 1,
+      });
+
+      const response = await sendAdminRequest(app, {
+        method: 'GET',
+        url: '/orders/stats/vente-stock?statuses=Livr%C3%A9,Confirm%C3%A9&startDate=2025-06-10&endDate=2025-06-10&categorySearch=Shoes&productSearch=Shark',
+      });
+
+      expect(response.status).toBe(200);
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.summary.totalItemsSold).toBe(3);
+      expect(mockOrderService.getVenteStockStatistics).toHaveBeenCalledWith({
+        statuses: ['Livré', 'Confirmé'],
+        startDate: '2025-06-10',
+        endDate: '2025-06-10',
+        categorySearch: 'Shoes',
+        productSearch: 'Shark',
+      });
+    });
+
+    it('should return 403 for non-admin vente stock statistics access', async () => {
+      const response = await sendAuthenticatedRequest(app, {
+        method: 'GET',
+        url: '/orders/stats/vente-stock',
         userId,
       });
 

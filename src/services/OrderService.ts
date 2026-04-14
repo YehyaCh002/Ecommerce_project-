@@ -1110,6 +1110,117 @@ export class OrderService {
     };
   }
 
+  async getVenteStockStatistics(filters?: {
+    statuses?: string[];
+    startDate?: string;
+    endDate?: string;
+    categorySearch?: string;
+    productSearch?: string;
+  }): Promise<any> {
+    const statuses =
+      filters?.statuses && filters.statuses.length > 0
+        ? filters.statuses
+        : [OrderStatus.LIVRE];
+
+    const query = this.orderItemRepository
+      .createQueryBuilder('item')
+      .leftJoinAndSelect('item.order', 'order')
+      .leftJoinAndSelect('item.product', 'product')
+      .leftJoinAndSelect('product.category', 'category')
+      .where('order.status IN (:...statuses)', { statuses })
+      .orderBy('item.createdAt', 'DESC');
+
+    if (filters?.startDate) {
+      query.andWhere('order.createdAt >= :startDate', {
+        startDate: new Date(filters.startDate),
+      });
+    }
+
+    if (filters?.endDate) {
+      const endDate = new Date(filters.endDate);
+      endDate.setHours(23, 59, 59, 999);
+      query.andWhere('order.createdAt <= :endDate', { endDate });
+    }
+
+    if (filters?.categorySearch) {
+      query.andWhere('category.name ILIKE :categorySearch', {
+        categorySearch: `%${filters.categorySearch}%`,
+      });
+    }
+
+    if (filters?.productSearch) {
+      query.andWhere(
+        new Brackets((qb) => {
+          qb.where('product.name ILIKE :productSearch', {
+            productSearch: `%${filters.productSearch}%`,
+          }).orWhere('CAST(product.id AS TEXT) ILIKE :productSearch', {
+            productSearch: `%${filters.productSearch}%`,
+          });
+        })
+      );
+    }
+
+    const items = await query.getMany();
+
+    const grouped = new Map<
+      number,
+      {
+        productId: number;
+        productName: string;
+        categoryName: string;
+        soldItems: number;
+        soldBoxes: Set<number>;
+        purchasePrice: number;
+        salesRevenue: number;
+      }
+    >();
+
+    for (const item of items) {
+      const productId = item.productId;
+      if (!grouped.has(productId)) {
+        grouped.set(productId, {
+          productId,
+          productName: item.product?.name || 'Unknown product',
+          categoryName: item.product?.category?.name || 'Unknown category',
+          soldItems: 0,
+          soldBoxes: new Set<number>(),
+          purchasePrice: Number(item.product?.price || 0),
+          salesRevenue: 0,
+        });
+      }
+
+      const row = grouped.get(productId)!;
+      row.soldItems += Number(item.quantity || 0);
+      row.soldBoxes.add(Number(item.orderId));
+      row.salesRevenue += Number(item.price || 0) * Number(item.quantity || 0);
+    }
+
+    const rows = Array.from(grouped.values()).map((row) => ({
+      productId: row.productId,
+      productName: row.productName,
+      categoryName: row.categoryName,
+      quantitySold: row.soldItems,
+      boxesSold: row.soldBoxes.size,
+      purchasePrice: parseFloat(row.purchasePrice.toFixed(2)),
+      salesRevenue: parseFloat(row.salesRevenue.toFixed(2)),
+    }));
+
+    const summary = {
+      productsCount: rows.length,
+      totalItemsSold: rows.reduce((total, row) => total + row.quantitySold, 0),
+      totalBoxesSold: rows.reduce((total, row) => total + row.boxesSold, 0),
+      totalRevenue: parseFloat(
+        rows.reduce((total, row) => total + row.salesRevenue, 0).toFixed(2)
+      ),
+    };
+
+    return {
+      summary,
+      rows,
+      count: rows.length,
+    };
+  }
+
   async getOrderHistory(orderId: number): Promise<OrderHistory[]> {
     return await this.orderHistoryRepository.find({
       where: { orderId },
