@@ -11,6 +11,9 @@ const mockOrderService = {
   updateOrderStatus: jest.fn(),
   updateOrder: jest.fn(),
   cancelOrder: jest.fn(),
+  requestExchange: jest.fn(),
+  approveExchange: jest.fn(),
+  rejectExchange: jest.fn(),
 };
 
 jest.mock('../services/OrderService', () => ({
@@ -195,7 +198,7 @@ describe('Order Routes Integration Tests', () => {
 
       const response = await sendAdminRequest(app, {
         method: 'PUT',
-        url: '/orders/1',
+        url: '/orders/1/update',
         payload: {
           updateData: { isExchange: true, shippingFee: 500 },
           note: 'Admin made this an exchange'
@@ -211,7 +214,7 @@ describe('Order Routes Integration Tests', () => {
     it('should return 403 if not admin', async () => {
       const response = await sendAuthenticatedRequest(app, {
         method: 'PUT',
-        url: '/orders/1',
+        url: '/orders/1/update',
         payload: {
           updateData: { isExchange: true }
         },
@@ -226,13 +229,62 @@ describe('Order Routes Integration Tests', () => {
 
       const response = await sendAdminRequest(app, {
         method: 'PUT',
-        url: '/orders/999',
+        url: '/orders/999/update',
         payload: {
           updateData: { isExchange: true }
         }
       });
 
       expect(response.status).toBe(404);
+    });
+  });
+
+  describe('Exchange workflow routes', () => {
+    it('should allow authenticated user to request exchange', async () => {
+      mockOrderService.requestExchange.mockResolvedValueOnce({ id: 15 });
+
+      const response = await sendAuthenticatedRequest(app, {
+        method: 'POST',
+        url: '/orders/15/exchange/request',
+        userId,
+        payload: { reason: 'Need another size' },
+      });
+
+      expect(response.status).toBe(200);
+      expect(response.body.success).toBe(true);
+      expect(mockOrderService.requestExchange).toHaveBeenCalledWith(
+        15,
+        Number(userId),
+        'Need another size'
+      );
+    });
+
+    it('should allow admin to approve exchange', async () => {
+      mockOrderService.approveExchange.mockResolvedValueOnce({ id: 22, isExchange: true });
+
+      const response = await sendAdminRequest(app, {
+        method: 'POST',
+        url: '/orders/22/exchange/approve',
+        payload: { note: 'Approved' },
+      });
+
+      expect(response.status).toBe(200);
+      expect(response.body.success).toBe(true);
+      expect(mockOrderService.approveExchange).toHaveBeenCalledWith(22, 1, 'Approved');
+    });
+
+    it('should allow admin to reject exchange', async () => {
+      mockOrderService.rejectExchange.mockResolvedValueOnce({ id: 23, isExchange: false });
+
+      const response = await sendAdminRequest(app, {
+        method: 'POST',
+        url: '/orders/23/exchange/reject',
+        payload: { note: 'Window passed' },
+      });
+
+      expect(response.status).toBe(200);
+      expect(response.body.success).toBe(true);
+      expect(mockOrderService.rejectExchange).toHaveBeenCalledWith(23, 1, 'Window passed');
     });
   });
 });

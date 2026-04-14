@@ -351,6 +351,120 @@ export class OrderController {
     }
   };
 
+  requestExchange = async (
+    req: AuthRequest,
+    res: FastifyReply
+  ): Promise<void> => {
+    try {
+      const { id } = req.params as { id: string };
+      const body = (req.body as any) || {};
+      const userId = req.userId || (body.userId ? parseInt(body.userId, 10) : undefined);
+
+      if (!userId) {
+        res.status(401).send({
+          success: false,
+          message: 'User ID required',
+        });
+        return;
+      }
+
+      const order = await this.orderService.requestExchange(
+        parseInt(id, 10),
+        userId,
+        body.reason
+      );
+
+      res.status(200).send({
+        success: true,
+        data: order,
+      });
+    } catch (error) {
+      throw error;
+    }
+  };
+
+  approveExchange = async (
+    req: AuthRequest,
+    res: FastifyReply
+  ): Promise<void> => {
+    try {
+      const { id } = req.params as { id: string };
+      const body = (req.body as any) || {};
+      const userRole = req.userRole || body.userRole;
+      const userId = req.userId || (body.userId ? parseInt(body.userId, 10) : undefined);
+
+      if (userRole !== 'admin') {
+        res.status(403).send({
+          success: false,
+          message: 'Admin access required',
+        });
+        return;
+      }
+
+      if (!userId) {
+        res.status(401).send({
+          success: false,
+          message: 'User ID required',
+        });
+        return;
+      }
+
+      const order = await this.orderService.approveExchange(
+        parseInt(id, 10),
+        userId,
+        body.note
+      );
+
+      res.status(200).send({
+        success: true,
+        data: order,
+      });
+    } catch (error) {
+      throw error;
+    }
+  };
+
+  rejectExchange = async (
+    req: AuthRequest,
+    res: FastifyReply
+  ): Promise<void> => {
+    try {
+      const { id } = req.params as { id: string };
+      const body = (req.body as any) || {};
+      const userRole = req.userRole || body.userRole;
+      const userId = req.userId || (body.userId ? parseInt(body.userId, 10) : undefined);
+
+      if (userRole !== 'admin') {
+        res.status(403).send({
+          success: false,
+          message: 'Admin access required',
+        });
+        return;
+      }
+
+      if (!userId) {
+        res.status(401).send({
+          success: false,
+          message: 'User ID required',
+        });
+        return;
+      }
+
+      const order = await this.orderService.rejectExchange(
+        parseInt(id, 10),
+        userId,
+        body.note
+      );
+
+      res.status(200).send({
+        success: true,
+        data: order,
+      });
+    } catch (error) {
+      throw error;
+    }
+  };
+
   confirmCancellation = async (
     req: AuthRequest,
     res: FastifyReply

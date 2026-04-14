@@ -16,6 +16,7 @@ import { CartService } from './CartService';
 import { ProductService } from './ProductService';
 
 export class OrderService {
+  private static readonly EXCHANGE_WINDOW_DAYS = 3;
   orderRepository: any;
   orderItemRepository: any;
   orderHistoryRepository: any;
@@ -63,6 +64,47 @@ export class OrderService {
     });
 
     return !!existingOrder;
+  }
+
+  private assertExchangeEligibility(order: Order): void {
+    if (order.status !== OrderStatus.LIVRE) {
+      throw new Error('Exchange is only allowed for delivered orders');
+    }
+
+    if (!order.validatedAt) {
+      throw new Error('Delivered date is missing for this order');
+    }
+
+    const exchangeWindowMs =
+      OrderService.EXCHANGE_WINDOW_DAYS * 24 * 60 * 60 * 1000;
+    const elapsedMs = Date.now() - new Date(order.validatedAt).getTime();
+
+    if (elapsedMs > exchangeWindowMs) {
+      throw new Error(
+        `Exchange window expired. Exchanges are allowed only within ${OrderService.EXCHANGE_WINDOW_DAYS} days after delivery`
+      );
+    }
+  }
+
+  private async getLatestExchangeState(orderId: number): Promise<'none' | 'requested' | 'approved' | 'rejected'> {
+    const historyEntries = await this.orderHistoryRepository.find({
+      where: {
+        orderId,
+        action: OrderAction.EXCHANGE,
+      },
+      order: {
+        timestamp: 'DESC',
+      },
+    });
+
+    for (const entry of historyEntries) {
+      const details = entry.details || '';
+      if (details.startsWith('[EXCHANGE_REQUEST]')) return 'requested';
+      if (details.startsWith('[EXCHANGE_APPROVED]')) return 'approved';
+      if (details.startsWith('[EXCHANGE_REJECTED]')) return 'rejected';
+    }
+
+    return 'none';
   }
 
   async createOrderFromCart(
@@ -619,6 +661,14 @@ export class OrderService {
       (updateData.exchangePrice !== undefined && updateData.exchangePrice !== order.exchangePrice) ||
       (updateData.productToCollect !== undefined && updateData.productToCollect !== order.productToCollect);
 
+    const isExchangeRequest =
+      updateData.isExchange === true ||
+      updateData.validationOutcome === ValidationOutcome.EXCHANGED;
+
+    if (isExchangeRequest) {
+      this.assertExchangeEligibility(order);
+    }
+
     const anyUpdateData = updateData as any;
     if (anyUpdateData.notes && !updateData.remark) {
       updateData.remark = anyUpdateData.notes;
@@ -709,6 +759,94 @@ export class OrderService {
         historyNote
       );
     }
+
+    return this.getOrderById(id);
+  }
+
+  async requestExchange(
+    id: number,
+    userId: number,
+    reason?: string
+  ): Promise<Order | null> {
+    const order = await this.getOrderById(id);
+    if (!order) {
+      throw new Error('Order not found');
+    }
+
+    if (order.userId && order.userId !== userId) {
+      throw new Error('Unauthorized');
+    }
+
+    this.assertExchangeEligibility(order);
+
+    const latestExchangeState = await this.getLatestExchangeState(id);
+    if (latestExchangeState === 'requested') {
+      throw new Error('Exchange request is already pending admin review');
+    }
+
+    await this.logOrderAction(
+      id,
+      OrderAction.EXCHANGE,
+      userId,
+      `[EXCHANGE_REQUEST] ${reason || 'No reason provided'}`
+    );
+
+    return this.getOrderById(id);
+  }
+
+  async approveExchange(
+    id: number,
+    adminUserId: number,
+    note?: string
+  ): Promise<Order | null> {
+    const order = await this.getOrderById(id);
+    if (!order) {
+      throw new Error('Order not found');
+    }
+
+    const latestExchangeState = await this.getLatestExchangeState(id);
+    if (latestExchangeState !== 'requested') {
+      throw new Error('No pending exchange request for this order');
+    }
+
+    const updatedOrder = await this.updateOrder(
+      id,
+      { isExchange: true },
+      adminUserId,
+      note || 'Exchange approved by admin'
+    );
+
+    await this.logOrderAction(
+      id,
+      OrderAction.EXCHANGE,
+      adminUserId,
+      `[EXCHANGE_APPROVED] ${note || 'Approved by admin'}`
+    );
+
+    return updatedOrder;
+  }
+
+  async rejectExchange(
+    id: number,
+    adminUserId: number,
+    note?: string
+  ): Promise<Order | null> {
+    const order = await this.getOrderById(id);
+    if (!order) {
+      throw new Error('Order not found');
+    }
+
+    const latestExchangeState = await this.getLatestExchangeState(id);
+    if (latestExchangeState !== 'requested') {
+      throw new Error('No pending exchange request for this order');
+    }
+
+    await this.logOrderAction(
+      id,
+      OrderAction.EXCHANGE,
+      adminUserId,
+      `[EXCHANGE_REJECTED] ${note || 'Rejected by admin'}`
+    );
 
     return this.getOrderById(id);
   }

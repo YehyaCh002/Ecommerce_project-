@@ -210,4 +210,69 @@ describe('Order validation integration behavior', () => {
     expect(result?.validationOutcome).toBe(ValidationOutcome.RETURNED);
     expect(result?.validatedAt).toBeNull();
   });
+
+  it('rejects exchange when order is not delivered', async () => {
+    const baseOrder = buildOrder({
+      status: OrderStatus.CONFIRME,
+      validatedAt: null,
+      isValidated: false,
+    });
+
+    mockOrderRepository.findOne.mockResolvedValueOnce(baseOrder);
+
+    await expect(
+      service.updateOrder(1, {
+        isExchange: true,
+      })
+    ).rejects.toThrow('Exchange is only allowed for delivered orders');
+  });
+
+  it('rejects exchange when delivered order is older than 3 days', async () => {
+    const fourDaysAgo = new Date(Date.now() - 4 * 24 * 60 * 60 * 1000);
+    const baseOrder = buildOrder({
+      status: OrderStatus.LIVRE,
+      isValidated: true,
+      validationOutcome: ValidationOutcome.RECEIVED,
+      validatedAt: fourDaysAgo,
+    });
+
+    mockOrderRepository.findOne.mockResolvedValueOnce(baseOrder);
+
+    await expect(
+      service.updateOrder(1, {
+        isExchange: true,
+      })
+    ).rejects.toThrow('Exchange window expired');
+  });
+
+  it('allows exchange when delivered within 3 days', async () => {
+    const oneDayAgo = new Date(Date.now() - 1 * 24 * 60 * 60 * 1000);
+    const baseOrder = buildOrder({
+      status: OrderStatus.LIVRE,
+      isValidated: true,
+      validationOutcome: ValidationOutcome.RECEIVED,
+      validatedAt: oneDayAgo,
+      isExchange: false,
+    });
+    const updatedOrder = buildOrder({
+      status: OrderStatus.LIVRE,
+      isValidated: true,
+      validationOutcome: ValidationOutcome.RECEIVED,
+      validatedAt: oneDayAgo,
+      isExchange: true,
+    });
+
+    mockOrderRepository.findOne
+      .mockResolvedValueOnce(baseOrder)
+      .mockResolvedValueOnce(updatedOrder);
+    mockOrderHistoryRepository.find.mockResolvedValue([]);
+    mockOrderRepository.save.mockImplementation(async (order) => order);
+
+    const result = await service.updateOrder(1, {
+      isExchange: true,
+    });
+
+    expect(result?.isExchange).toBe(true);
+    expect(mockOrderRepository.save).toHaveBeenCalled();
+  });
 });

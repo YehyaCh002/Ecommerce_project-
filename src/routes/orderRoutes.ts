@@ -59,6 +59,24 @@ export default async function orderRoutes(fastify: FastifyInstance) {
   );
 
   fastify.post(
+    '/:id/exchange/request',
+    { preHandler: [authenticate] },
+    (request, reply) => orderController.requestExchange(request, reply)
+  );
+
+  fastify.post(
+    '/:id/exchange/approve',
+    { preHandler: [authenticate, requireAdmin] },
+    (request, reply) => orderController.approveExchange(request, reply)
+  );
+
+  fastify.post(
+    '/:id/exchange/reject',
+    { preHandler: [authenticate, requireAdmin] },
+    (request, reply) => orderController.rejectExchange(request, reply)
+  );
+
+  fastify.post(
     '/:id/cancel-confirm',
     { preHandler: [authenticate, requireAdmin] },
     (request, reply) => orderController.confirmCancellation(request, reply)
@@ -84,10 +102,20 @@ export default async function orderRoutes(fastify: FastifyInstance) {
   );
 
   fastify.put(
-    '/:id',
+    '/:id/update',
     { 
       preHandler: [authenticate, requireAdmin],
       schema: updateOrderSchema
+    },
+    (request, reply) => orderController.updateOrder(request, reply)
+  );
+
+  // Backward compatibility for existing clients using PUT /orders/:id
+  fastify.put(
+    '/:id',
+    {
+      preHandler: [authenticate, requireAdmin],
+      schema: updateOrderSchema,
     },
     (request, reply) => orderController.updateOrder(request, reply)
   );
