@@ -149,4 +149,10 @@ export default async function orderRoutes(fastify: FastifyInstance) {
     { preHandler: [authenticate, requireAdmin] },
     (request, reply) => orderController.getConfirmationStats(request, reply)
   );
+
+  fastify.get(
+    '/stats/commandes',
+    { preHandler: [authenticate, requireAdmin] },
+    (request, reply) => orderController.getCommandesStatistics(request, reply)
+  );
 }

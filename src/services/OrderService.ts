@@ -409,6 +409,40 @@ export class OrderService {
     );
   }
 
+  private hasUndefinedSignal(order: Order): boolean {
+    const trackingStatus = (order.tracking_status || '').toLowerCase();
+    const subStatus = (order.current_sub_status || '').toLowerCase();
+
+    return (
+      trackingStatus.includes('perdu') ||
+      trackingStatus.includes('lost') ||
+      trackingStatus.includes('missing') ||
+      trackingStatus.includes('undefined') ||
+      trackingStatus.includes('inconnu') ||
+      subStatus.includes('perdu') ||
+      subStatus.includes('lost') ||
+      subStatus.includes('missing') ||
+      subStatus.includes('undefined') ||
+      subStatus.includes('inconnu')
+    );
+  }
+
+  private hasOnAlertSignal(order: Order): boolean {
+    const trackingStatus = (order.tracking_status || '').toLowerCase();
+    const subStatus = (order.current_sub_status || '').toLowerCase();
+
+    return (
+      trackingStatus.includes('sorti') ||
+      trackingStatus.includes('en livraison') ||
+      trackingStatus.includes('out for delivery') ||
+      trackingStatus.includes('delivery in progress') ||
+      subStatus.includes('sorti') ||
+      subStatus.includes('en livraison') ||
+      subStatus.includes('out for delivery') ||
+      subStatus.includes('delivery in progress')
+    );
+  }
+
   async getReclamationOrders(filters?: {
     type?: 'all' | 'cancellation' | 'exchange' | 'failed_delivery' | 'duplicate';
     search?: string;
@@ -570,6 +604,218 @@ export class OrderService {
     return {
       orders,
       summary,
+    };
+  }
+
+  async getCommandesStatistics(filters?: {
+    tab?: 'statistics' | 'advance' | 'daily' | 'confirmed' | 'undefined' | 'on_alert';
+    startDate?: string;
+    endDate?: string;
+    assignedToId?: number;
+    status?: string;
+    search?: string;
+  }): Promise<any> {
+    const tab = filters?.tab || 'statistics';
+
+    const query = this.orderRepository
+      .createQueryBuilder('order')
+      .leftJoinAndSelect('order.wilaya', 'wilaya')
+      .leftJoinAndSelect('order.deliveryPlatform', 'deliveryPlatform')
+      .leftJoinAndSelect('order.assignedTo', 'assignedTo')
+      .leftJoinAndSelect('order.orderItems', 'orderItems')
+      .leftJoinAndSelect('orderItems.product', 'product')
+      .orderBy('order.createdAt', 'DESC');
+
+    if (filters?.startDate) {
+      query.andWhere('order.createdAt >= :startDate', {
+        startDate: new Date(filters.startDate),
+      });
+    }
+
+    if (filters?.endDate) {
+      const endDate = new Date(filters.endDate);
+      endDate.setHours(23, 59, 59, 999);
+      query.andWhere('order.createdAt <= :endDate', { endDate });
+    }
+
+    if (filters?.assignedToId) {
+      query.andWhere('order.assignedToId = :assignedToId', {
+        assignedToId: filters.assignedToId,
+      });
+    }
+
+    if (filters?.status) {
+      query.andWhere('order.status = :status', {
+        status: filters.status,
+      });
+    }
+
+    if (filters?.search) {
+      query.andWhere(
+        new Brackets((qb) => {
+          qb.where('CAST(order.id AS TEXT) ILIKE :search', {
+            search: `%${filters.search}%`,
+          })
+            .orWhere('order.customerName ILIKE :search', {
+              search: `%${filters.search}%`,
+            })
+            .orWhere('order.phoneNumber ILIKE :search', {
+              search: `%${filters.search}%`,
+            });
+        })
+      );
+    }
+
+    const orders = (await query.getMany()) as Order[];
+
+    const confirmedStatuses = [
+      OrderStatus.CONFIRME,
+      OrderStatus.OTP_CONFIRME,
+      OrderStatus.VERS_LA_WILAYA,
+      OrderStatus.RECU_A_LA_WILAYA,
+      OrderStatus.LIVRE,
+    ];
+    const shippedStatuses = [OrderStatus.VERS_LA_WILAYA, OrderStatus.RECU_A_LA_WILAYA];
+
+    const statusBuckets: Record<string, number> = {
+      pending: 0,
+      not_answered_1st_attempt: 0,
+      confirmed: 0,
+      confirmed_otp: 0,
+      to_wilaya: 0,
+      received_wilaya: 0,
+      delivered: 0,
+      cancelled: 0,
+      fake_order: 0,
+    };
+
+    for (const order of orders) {
+      if (order.status === OrderStatus.EN_ATTENTE) statusBuckets.pending += 1;
+      else if (order.status === OrderStatus.NON_REPONDU_1ERE) statusBuckets.not_answered_1st_attempt += 1;
+      else if (order.status === OrderStatus.CONFIRME) statusBuckets.confirmed += 1;
+      else if (order.status === OrderStatus.OTP_CONFIRME) statusBuckets.confirmed_otp += 1;
+      else if (order.status === OrderStatus.VERS_LA_WILAYA) statusBuckets.to_wilaya += 1;
+      else if (order.status === OrderStatus.RECU_A_LA_WILAYA) statusBuckets.received_wilaya += 1;
+      else if (order.status === OrderStatus.LIVRE) statusBuckets.delivered += 1;
+      else if (order.status === OrderStatus.ANNULE) statusBuckets.cancelled += 1;
+      else if (order.status === OrderStatus.COMMANDE_FICTIVE) statusBuckets.fake_order += 1;
+    }
+
+    const totalOrders = orders.length;
+    const confirmedOrders = orders.filter((order) => confirmedStatuses.includes(order.status)).length;
+    const nonConfirmedOrders = totalOrders - confirmedOrders;
+    const shippedOrders = orders.filter((order) => shippedStatuses.includes(order.status)).length;
+    const deliveredOrders = orders.filter((order) => order.status === OrderStatus.LIVRE).length;
+    const returnedOrders = orders.filter((order) => order.validationOutcome === ValidationOutcome.RETURNED).length;
+    const undefinedOrders = orders.filter((order) => this.hasUndefinedSignal(order));
+    const onAlertOrders = orders.filter((order) => this.hasOnAlertSignal(order));
+
+    const sumBy = (arr: Order[]) =>
+      arr.reduce((total, order) => total + Number(order.totalPrice || 0), 0);
+
+    const confirmedRevenue = sumBy(
+      orders.filter((order) =>
+        [OrderStatus.CONFIRME, OrderStatus.OTP_CONFIRME, OrderStatus.VERS_LA_WILAYA, OrderStatus.RECU_A_LA_WILAYA, OrderStatus.LIVRE].includes(order.status)
+      )
+    );
+    const shippedRevenue = sumBy(orders.filter((order) => shippedStatuses.includes(order.status)));
+    const deliveredRevenue = sumBy(orders.filter((order) => order.status === OrderStatus.LIVRE));
+    const totalCosts = orders.reduce((total, order) => total + Number(order.shippingFee || 0), 0);
+    const netProfit = deliveredRevenue - totalCosts;
+    const margin = deliveredRevenue > 0 ? (netProfit / deliveredRevenue) * 100 : 0;
+
+    if (tab === 'confirmed') {
+      return {
+        tab,
+        summary: {
+          totalOrders,
+          confirmedOrders,
+          nonConfirmedOrders,
+          confirmationRate: totalOrders > 0 ? parseFloat(((confirmedOrders / totalOrders) * 100).toFixed(2)) : 0,
+        },
+        orders,
+      };
+    }
+
+    if (tab === 'undefined') {
+      return {
+        tab,
+        summary: {
+          total: undefinedOrders.length,
+          label: 'lost_parcels',
+        },
+        orders: undefinedOrders,
+      };
+    }
+
+    if (tab === 'on_alert') {
+      return {
+        tab,
+        summary: {
+          total: onAlertOrders.length,
+          label: 'delivery_alerts',
+        },
+        orders: onAlertOrders,
+      };
+    }
+
+    if (tab === 'advance') {
+      return {
+        tab,
+        deliveryRatePerOrder: {
+          allOrdersPercent: totalOrders > 0 ? 100 : 0,
+          deliveryPercent: totalOrders > 0 ? parseFloat(((deliveredOrders / totalOrders) * 100).toFixed(2)) : 0,
+        },
+        summary: {
+          totalOrders,
+          deliveredOrders,
+        },
+      };
+    }
+
+    if (tab === 'daily') {
+      return {
+        tab,
+        cards: {
+          totalOrders,
+          confirmedOrders,
+          shippedOrders,
+          deliveredOrders,
+          returnedOrders,
+          successRate: totalOrders > 0 ? parseFloat(((deliveredOrders / totalOrders) * 100).toFixed(2)) : 0,
+          returnRate: totalOrders > 0 ? parseFloat(((returnedOrders / totalOrders) * 100).toFixed(2)) : 0,
+        },
+        financial: {
+          confirmedRevenue,
+          shippedRevenue,
+          deliveredRevenue,
+          totalCosts,
+          netProfit,
+          margin: parseFloat(margin.toFixed(2)),
+        },
+        conversionFunnel: {
+          totalOrders,
+          confirmedOrders,
+          shippedOrders,
+          deliveredOrders,
+          confirmedRate: totalOrders > 0 ? parseFloat(((confirmedOrders / totalOrders) * 100).toFixed(2)) : 0,
+          shippedRateFromConfirmed: confirmedOrders > 0 ? parseFloat(((shippedOrders / confirmedOrders) * 100).toFixed(2)) : 0,
+          deliveredRateFromShipped: shippedOrders > 0 ? parseFloat(((deliveredOrders / shippedOrders) * 100).toFixed(2)) : 0,
+        },
+      };
+    }
+
+    return {
+      tab: 'statistics',
+      statusDistribution: statusBuckets,
+      summary: {
+        totalOrders,
+        confirmedOrders,
+        nonConfirmedOrders,
+        undefinedCount: undefinedOrders.length,
+        onAlertCount: onAlertOrders.length,
+      },
+      orders,
     };
   }
 

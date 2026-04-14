@@ -582,6 +582,48 @@ export class OrderController {
     }
   };
 
+  getCommandesStatistics = async (
+    req: AuthRequest,
+    res: FastifyReply
+  ): Promise<void> => {
+    try {
+      const body = (req.body as any) || {};
+      const userRole = req.userRole || body.userRole;
+      if (userRole !== 'admin') {
+        res.status(403).send({
+          success: false,
+          message: 'Admin access required',
+        });
+        return;
+      }
+
+      const query = (req.query as any) || {};
+      const data = await this.orderService.getCommandesStatistics({
+        tab: query.tab,
+        startDate: query.startDate,
+        endDate: query.endDate,
+        assignedToId: query.assignedToId
+          ? parseInt(query.assignedToId, 10)
+          : undefined,
+        status: query.status,
+        search: query.search,
+      });
+
+      res.status(200).send({
+        success: true,
+        data,
+      });
+    } catch (error) {
+      res.status(500).send({
+        success: false,
+        message:
+          error instanceof Error
+            ? error.message
+            : 'Failed to fetch commandes statistics',
+      });
+    }
+  };
+
   getWilayaTrackingOrders = async (
     req: AuthRequest,
     res: FastifyReply

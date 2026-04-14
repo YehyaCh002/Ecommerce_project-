@@ -8,6 +8,7 @@ const mockOrderService = {
   getOrdersByUserId: jest.fn(),
   getAllOrders: jest.fn(),
   getReclamationOrders: jest.fn(),
+  getCommandesStatistics: jest.fn(),
   updateOrderStatus: jest.fn(),
   updateOrder: jest.fn(),
   cancelOrder: jest.fn(),
@@ -184,6 +185,41 @@ describe('Order Routes Integration Tests', () => {
       const response = await sendAuthenticatedRequest(app, {
         method: 'GET',
         url: '/orders/reclamations',
+        userId,
+      });
+
+      expect(response.status).toBe(403);
+    });
+
+    it('should return commandes statistics for admin and forward query', async () => {
+      mockOrderService.getCommandesStatistics.mockResolvedValueOnce({
+        tab: 'undefined',
+        summary: { total: 3, label: 'lost_parcels' },
+        orders: [{ id: 1 }, { id: 2 }, { id: 3 }],
+      });
+
+      const response = await sendAdminRequest(app, {
+        method: 'GET',
+        url: '/orders/stats/commandes?tab=undefined&startDate=2025-06-01&endDate=2025-06-10&assignedToId=1&status=Confirm%C3%A9&search=055',
+      });
+
+      expect(response.status).toBe(200);
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.tab).toBe('undefined');
+      expect(mockOrderService.getCommandesStatistics).toHaveBeenCalledWith({
+        tab: 'undefined',
+        startDate: '2025-06-01',
+        endDate: '2025-06-10',
+        assignedToId: 1,
+        status: 'Confirmé',
+        search: '055',
+      });
+    });
+
+    it('should return 403 for non-admin commandes statistics access', async () => {
+      const response = await sendAuthenticatedRequest(app, {
+        method: 'GET',
+        url: '/orders/stats/commandes?tab=on_alert',
         userId,
       });
 
