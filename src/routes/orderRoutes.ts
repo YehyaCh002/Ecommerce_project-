@@ -32,6 +32,12 @@ export default async function orderRoutes(fastify: FastifyInstance) {
     (request, reply) => orderController.getUserOrders(request, reply)
   );
 
+  fastify.get(
+    '/reclamations',
+    { preHandler: [authenticate, requireAdmin] },
+    (request, reply) => orderController.getReclamationOrders(request, reply)
+  );
+
   fastify.get('/:id', (request, reply) => orderController.getOrderById(request, reply));
 
   fastify.get(

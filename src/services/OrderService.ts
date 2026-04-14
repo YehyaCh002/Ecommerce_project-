@@ -1,5 +1,5 @@
 import { AppDataSource } from '../config/data-source';
-import { In, MoreThanOrEqual } from 'typeorm';
+import { Brackets, In, MoreThanOrEqual } from 'typeorm';
 import {
   Order,
   OrderStatus,
@@ -353,6 +353,182 @@ export class OrderService {
       relations: ['orderItems', 'orderItems.product', 'customer', 'wilaya', 'assignedTo'],
       order: { createdAt: 'DESC' },
     });
+  }
+
+  private hasFailedDeliverySignal(order: Order): boolean {
+    const trackingStatus = (order.tracking_status || '').toLowerCase();
+    const subStatus = (order.current_sub_status || '').toLowerCase();
+
+    return (
+      trackingStatus.includes('echou') ||
+      trackingStatus.includes('échou') ||
+      subStatus.includes('echou') ||
+      subStatus.includes('échou')
+    );
+  }
+
+  async getReclamationOrders(filters?: {
+    type?: 'all' | 'cancellation' | 'exchange' | 'failed_delivery' | 'duplicate';
+    search?: string;
+    platformId?: number;
+    wilayaId?: number;
+    status?: string;
+  }): Promise<{
+    orders: Array<any>;
+    summary: {
+      total: number;
+      cancellation: number;
+      exchange: number;
+      failedDelivery: number;
+      duplicate: number;
+    };
+  }> {
+    const query = this.orderRepository
+      .createQueryBuilder('order')
+      .leftJoinAndSelect('order.orderItems', 'orderItems')
+      .leftJoinAndSelect('orderItems.product', 'product')
+      .leftJoinAndSelect('order.customer', 'customer')
+      .leftJoinAndSelect('order.wilaya', 'wilaya')
+      .leftJoinAndSelect('order.assignedTo', 'assignedTo')
+      .leftJoinAndSelect('order.deliveryPlatform', 'deliveryPlatform')
+      .orderBy('order.createdAt', 'DESC');
+
+    const type = filters?.type || 'all';
+
+    if (filters?.search) {
+      query.andWhere(
+        new Brackets((qb) => {
+          qb.where('CAST(order.id AS TEXT) ILIKE :search', { search: `%${filters.search}%` })
+            .orWhere('order.customerName ILIKE :search', { search: `%${filters.search}%` })
+            .orWhere('order.phoneNumber ILIKE :search', { search: `%${filters.search}%` })
+            .orWhere("COALESCE(order.trackingNumber, '') ILIKE :search", {
+              search: `%${filters.search}%`,
+            });
+        })
+      );
+    }
+
+    if (filters?.platformId) {
+      query.andWhere('order.deliveryPlatformId = :platformId', {
+        platformId: filters.platformId,
+      });
+    }
+
+    if (filters?.wilayaId) {
+      query.andWhere('order.wilayaId = :wilayaId', {
+        wilayaId: filters.wilayaId,
+      });
+    }
+
+    if (filters?.status) {
+      query.andWhere('order.status = :status', { status: filters.status });
+    }
+
+    if (type === 'cancellation') {
+      query.andWhere(
+        new Brackets((qb) => {
+          qb.where('order.cancellationStatus IN (:...cancelStates)', {
+            cancelStates: [CancellationStatus.REQUESTED, CancellationStatus.CONFIRMED],
+          }).orWhere('order.status = :cancelledStatus', {
+            cancelledStatus: OrderStatus.ANNULE,
+          });
+        })
+      );
+    } else if (type === 'exchange') {
+      query.andWhere(
+        new Brackets((qb) => {
+          qb.where('order.isExchange = true').orWhere(
+            'order.validationOutcome = :exchangedOutcome',
+            { exchangedOutcome: ValidationOutcome.EXCHANGED }
+          );
+        })
+      );
+    } else if (type === 'failed_delivery') {
+      query.andWhere(
+        new Brackets((qb) => {
+          qb.where("LOWER(COALESCE(order.tracking_status, '')) LIKE :failedSearch", {
+            failedSearch: '%echou%',
+          })
+            .orWhere("LOWER(COALESCE(order.current_sub_status, '')) LIKE :failedSearch", {
+              failedSearch: '%echou%',
+            })
+            .orWhere("LOWER(COALESCE(order.tracking_status, '')) LIKE :failedSearchAccent", {
+              failedSearchAccent: '%échou%',
+            })
+            .orWhere("LOWER(COALESCE(order.current_sub_status, '')) LIKE :failedSearchAccent", {
+              failedSearchAccent: '%échou%',
+            });
+        })
+      );
+    } else if (type === 'duplicate') {
+      query.andWhere('order.isPotentialDuplicate = true');
+    } else {
+      query.andWhere(
+        new Brackets((qb) => {
+          qb.where('order.cancellationStatus IN (:...cancelStates)', {
+            cancelStates: [CancellationStatus.REQUESTED, CancellationStatus.CONFIRMED],
+          })
+            .orWhere('order.status = :cancelledStatus', {
+              cancelledStatus: OrderStatus.ANNULE,
+            })
+            .orWhere('order.isExchange = true')
+            .orWhere('order.validationOutcome = :exchangedOutcome', {
+              exchangedOutcome: ValidationOutcome.EXCHANGED,
+            })
+            .orWhere('order.isPotentialDuplicate = true')
+            .orWhere("LOWER(COALESCE(order.tracking_status, '')) LIKE :failedSearch", {
+              failedSearch: '%echou%',
+            })
+            .orWhere("LOWER(COALESCE(order.current_sub_status, '')) LIKE :failedSearch", {
+              failedSearch: '%echou%',
+            })
+            .orWhere("LOWER(COALESCE(order.tracking_status, '')) LIKE :failedSearchAccent", {
+              failedSearchAccent: '%échou%',
+            })
+            .orWhere("LOWER(COALESCE(order.current_sub_status, '')) LIKE :failedSearchAccent", {
+              failedSearchAccent: '%échou%',
+            });
+        })
+      );
+    }
+
+    const rawOrders = (await query.getMany()) as Order[];
+
+    const orders = rawOrders.map((order) => {
+      const isCancellation =
+        order.cancellationStatus === CancellationStatus.REQUESTED ||
+        order.cancellationStatus === CancellationStatus.CONFIRMED ||
+        order.status === OrderStatus.ANNULE;
+      const isExchange =
+        order.isExchange || order.validationOutcome === ValidationOutcome.EXCHANGED;
+      const isFailedDelivery = this.hasFailedDeliverySignal(order);
+      const isDuplicate = !!order.isPotentialDuplicate;
+
+      const reclamationTags: string[] = [];
+      if (isCancellation) reclamationTags.push('cancellation');
+      if (isExchange) reclamationTags.push('exchange');
+      if (isFailedDelivery) reclamationTags.push('failed_delivery');
+      if (isDuplicate) reclamationTags.push('duplicate');
+
+      return {
+        ...order,
+        reclamationTags,
+        reclamationPriority: reclamationTags.length,
+      };
+    });
+
+    const summary = {
+      total: orders.length,
+      cancellation: orders.filter((order) => order.reclamationTags.includes('cancellation')).length,
+      exchange: orders.filter((order) => order.reclamationTags.includes('exchange')).length,
+      failedDelivery: orders.filter((order) => order.reclamationTags.includes('failed_delivery')).length,
+      duplicate: orders.filter((order) => order.reclamationTags.includes('duplicate')).length,
+    };
+
+    return {
+      orders,
+      summary,
+    };
   }
 
   async getOrderHistory(orderId: number): Promise<OrderHistory[]> {

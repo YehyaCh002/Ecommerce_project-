@@ -7,6 +7,7 @@ const mockOrderService = {
   getOrderById: jest.fn(),
   getOrdersByUserId: jest.fn(),
   getAllOrders: jest.fn(),
+  getReclamationOrders: jest.fn(),
   updateOrderStatus: jest.fn(),
   updateOrder: jest.fn(),
   cancelOrder: jest.fn(),
@@ -144,6 +145,46 @@ describe('Order Routes Integration Tests', () => {
 
        expect(response.status).toBe(200);
        expect(response.body.data[0].id).toBe(1);
+    });
+
+    it('should return reclamation orders and summary for admin', async () => {
+      mockOrderService.getReclamationOrders.mockResolvedValueOnce({
+        orders: [{ id: 77, reclamationTags: ['cancellation'] }],
+        summary: {
+          total: 1,
+          cancellation: 1,
+          exchange: 0,
+          failedDelivery: 0,
+          duplicate: 0,
+        },
+      });
+
+      const response = await sendAdminRequest(app, {
+        method: 'GET',
+        url: '/orders/reclamations?type=cancellation&search=77',
+      });
+
+      expect(response.status).toBe(200);
+      expect(response.body.success).toBe(true);
+      expect(response.body.count).toBe(1);
+      expect(response.body.summary.cancellation).toBe(1);
+      expect(mockOrderService.getReclamationOrders).toHaveBeenCalledWith({
+        type: 'cancellation',
+        search: '77',
+        platformId: undefined,
+        wilayaId: undefined,
+        status: undefined,
+      });
+    });
+
+    it('should return 403 for non-admin reclamations access', async () => {
+      const response = await sendAuthenticatedRequest(app, {
+        method: 'GET',
+        url: '/orders/reclamations',
+        userId,
+      });
+
+      expect(response.status).toBe(403);
     });
   });
 

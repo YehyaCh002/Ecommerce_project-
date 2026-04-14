@@ -497,6 +497,47 @@ export class OrderController {
     }
   };
 
+  getReclamationOrders = async (
+    req: AuthRequest,
+    res: FastifyReply
+  ): Promise<void> => {
+    try {
+      const body = (req.body as any) || {};
+      const userRole = req.userRole || body.userRole;
+      if (userRole !== 'admin') {
+        res.status(403).send({
+          success: false,
+          message: 'Admin access required',
+        });
+        return;
+      }
+
+      const query = (req.query as any) || {};
+      const result = await this.orderService.getReclamationOrders({
+        type: query.type,
+        search: query.search,
+        platformId: query.platformId ? parseInt(query.platformId, 10) : undefined,
+        wilayaId: query.wilayaId ? parseInt(query.wilayaId, 10) : undefined,
+        status: query.status,
+      });
+
+      res.status(200).send({
+        success: true,
+        data: result.orders,
+        count: result.orders.length,
+        summary: result.summary,
+      });
+    } catch (error) {
+      res.status(500).send({
+        success: false,
+        message:
+          error instanceof Error
+            ? error.message
+            : 'Failed to fetch reclamation orders',
+      });
+    }
+  };
+
   addTrackingLog = async (
     req: AuthRequest,
     res: FastifyReply
