@@ -666,6 +666,48 @@ export class OrderController {
     }
   };
 
+  getEchecsStatistics = async (
+    req: AuthRequest,
+    res: FastifyReply
+  ): Promise<void> => {
+    try {
+      const body = (req.body as any) || {};
+      const userRole = req.userRole || body.userRole;
+      if (userRole !== 'admin') {
+        res.status(403).send({
+          success: false,
+          message: 'Admin access required',
+        });
+        return;
+      }
+
+      const query = (req.query as any) || {};
+      const data = await this.orderService.getEchecsStatistics({
+        startDate: query.startDate,
+        endDate: query.endDate,
+        assignedToId: query.assignedToId
+          ? parseInt(query.assignedToId, 10)
+          : undefined,
+        platformId: query.platformId ? parseInt(query.platformId, 10) : undefined,
+        wilayaId: query.wilayaId ? parseInt(query.wilayaId, 10) : undefined,
+        search: query.search,
+      });
+
+      res.status(200).send({
+        success: true,
+        data,
+      });
+    } catch (error) {
+      res.status(500).send({
+        success: false,
+        message:
+          error instanceof Error
+            ? error.message
+            : 'Failed to fetch echecs statistics',
+      });
+    }
+  };
+
   getWilayaTrackingOrders = async (
     req: AuthRequest,
     res: FastifyReply

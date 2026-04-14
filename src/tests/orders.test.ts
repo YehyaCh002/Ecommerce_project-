@@ -10,6 +10,7 @@ const mockOrderService = {
   getReclamationOrders: jest.fn(),
   getCommandesStatistics: jest.fn(),
   getRetoursStatistics: jest.fn(),
+  getEchecsStatistics: jest.fn(),
   updateOrderStatus: jest.fn(),
   updateOrder: jest.fn(),
   cancelOrder: jest.fn(),
@@ -266,6 +267,53 @@ describe('Order Routes Integration Tests', () => {
       const response = await sendAuthenticatedRequest(app, {
         method: 'GET',
         url: '/orders/stats/retours',
+        userId,
+      });
+
+      expect(response.status).toBe(403);
+    });
+
+    it('should return echecs statistics for admin and forward query', async () => {
+      mockOrderService.getEchecsStatistics.mockResolvedValueOnce({
+        summary: { total: 10 },
+        charts: {
+          bar: [{ key: 'localization', label: 'En localisation', count: 6 }],
+          pie: [{ key: 'localization', label: 'En localisation', count: 6 }],
+        },
+        cards: [
+          {
+            key: 'localization',
+            label: 'En localisation',
+            count: 6,
+            attribution: [{ label: 'Erreur de traitement', count: 4 }],
+          },
+        ],
+        orders: [{ id: 1 }],
+        count: 1,
+      });
+
+      const response = await sendAdminRequest(app, {
+        method: 'GET',
+        url: '/orders/stats/echecs?startDate=2025-06-05&endDate=2025-06-10&assignedToId=1&platformId=2&wilayaId=16&search=055',
+      });
+
+      expect(response.status).toBe(200);
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.summary.total).toBe(10);
+      expect(mockOrderService.getEchecsStatistics).toHaveBeenCalledWith({
+        startDate: '2025-06-05',
+        endDate: '2025-06-10',
+        assignedToId: 1,
+        platformId: 2,
+        wilayaId: 16,
+        search: '055',
+      });
+    });
+
+    it('should return 403 for non-admin echecs statistics access', async () => {
+      const response = await sendAuthenticatedRequest(app, {
+        method: 'GET',
+        url: '/orders/stats/echecs',
         userId,
       });
 

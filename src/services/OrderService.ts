@@ -937,6 +937,179 @@ export class OrderService {
     };
   }
 
+  async getEchecsStatistics(filters?: {
+    startDate?: string;
+    endDate?: string;
+    assignedToId?: number;
+    platformId?: number;
+    wilayaId?: number;
+    search?: string;
+  }): Promise<any> {
+    const query = this.orderRepository
+      .createQueryBuilder('order')
+      .leftJoinAndSelect('order.wilaya', 'wilaya')
+      .leftJoinAndSelect('order.deliveryPlatform', 'deliveryPlatform')
+      .leftJoinAndSelect('order.assignedTo', 'assignedTo')
+      .leftJoinAndSelect('order.trackingLogs', 'trackingLogs')
+      .orderBy('order.updatedAt', 'DESC');
+
+    if (filters?.startDate) {
+      query.andWhere('order.updatedAt >= :startDate', {
+        startDate: new Date(filters.startDate),
+      });
+    }
+
+    if (filters?.endDate) {
+      const endDate = new Date(filters.endDate);
+      endDate.setHours(23, 59, 59, 999);
+      query.andWhere('order.updatedAt <= :endDate', { endDate });
+    }
+
+    if (filters?.assignedToId) {
+      query.andWhere('order.assignedToId = :assignedToId', {
+        assignedToId: filters.assignedToId,
+      });
+    }
+
+    if (filters?.platformId) {
+      query.andWhere('order.deliveryPlatformId = :platformId', {
+        platformId: filters.platformId,
+      });
+    }
+
+    if (filters?.wilayaId) {
+      query.andWhere('order.wilayaId = :wilayaId', {
+        wilayaId: filters.wilayaId,
+      });
+    }
+
+    if (filters?.search) {
+      query.andWhere(
+        new Brackets((qb) => {
+          qb.where('CAST(order.id AS TEXT) ILIKE :search', {
+            search: `%${filters.search}%`,
+          })
+            .orWhere('order.customerName ILIKE :search', {
+              search: `%${filters.search}%`,
+            })
+            .orWhere('order.phoneNumber ILIKE :search', {
+              search: `%${filters.search}%`,
+            });
+        })
+      );
+    }
+
+    const orders = (await query.getMany()) as Order[];
+
+    const statusNames = {
+      waitingClient: 'En attente du client',
+      localization: 'En localisation',
+      receivedWilaya: 'Reçu à Wilaya',
+      failedAttempt: 'Tentative échouée',
+    };
+
+    const normalize = (value?: string | null) => (value || '').toLowerCase();
+
+    const bucketForOrder = (order: Order): keyof typeof statusNames | null => {
+      const tracking = normalize(order.tracking_status);
+      const sub = normalize(order.current_sub_status);
+      const source = `${tracking} ${sub}`;
+
+      if (source.includes('tentative') && (source.includes('echou') || source.includes('échou'))) {
+        return 'failedAttempt';
+      }
+      if (source.includes('attente du client') || source.includes('en attente client')) {
+        return 'waitingClient';
+      }
+      if (source.includes('localisation') || source.includes('en localisation')) {
+        return 'localization';
+      }
+      if (source.includes('reçu à wilaya') || source.includes('recu a wilaya') || source.includes('reçu wilaya')) {
+        return 'receivedWilaya';
+      }
+
+      return null;
+    };
+
+    const cards = {
+      waitingClient: { label: statusNames.waitingClient, count: 0, attribution: new Map<string, number>() },
+      localization: { label: statusNames.localization, count: 0, attribution: new Map<string, number>() },
+      receivedWilaya: { label: statusNames.receivedWilaya, count: 0, attribution: new Map<string, number>() },
+      failedAttempt: { label: statusNames.failedAttempt, count: 0, attribution: new Map<string, number>() },
+    };
+
+    const filteredOrders: Order[] = [];
+
+    for (const order of orders) {
+      const bucket = bucketForOrder(order);
+      if (!bucket) continue;
+
+      filteredOrders.push(order);
+      cards[bucket].count += 1;
+
+      const attributionSource =
+        order.current_sub_status ||
+        order.trackingLogs?.[0]?.sub_status ||
+        order.trackingLogs?.[0]?.description ||
+        'Non attribué';
+
+      cards[bucket].attribution.set(
+        attributionSource,
+        (cards[bucket].attribution.get(attributionSource) || 0) + 1
+      );
+    }
+
+    const toAttributionList = (map: Map<string, number>) =>
+      Array.from(map.entries())
+        .map(([label, count]) => ({ label, count }))
+        .sort((a, b) => b.count - a.count);
+
+    const barChart = [
+      { key: 'waiting_client', label: statusNames.waitingClient, count: cards.waitingClient.count },
+      { key: 'localization', label: statusNames.localization, count: cards.localization.count },
+      { key: 'received_wilaya', label: statusNames.receivedWilaya, count: cards.receivedWilaya.count },
+      { key: 'failed_attempt', label: statusNames.failedAttempt, count: cards.failedAttempt.count },
+    ];
+
+    return {
+      summary: {
+        total: filteredOrders.length,
+      },
+      charts: {
+        bar: barChart,
+        pie: barChart,
+      },
+      cards: [
+        {
+          key: 'waiting_client',
+          label: statusNames.waitingClient,
+          count: cards.waitingClient.count,
+          attribution: toAttributionList(cards.waitingClient.attribution),
+        },
+        {
+          key: 'localization',
+          label: statusNames.localization,
+          count: cards.localization.count,
+          attribution: toAttributionList(cards.localization.attribution),
+        },
+        {
+          key: 'received_wilaya',
+          label: statusNames.receivedWilaya,
+          count: cards.receivedWilaya.count,
+          attribution: toAttributionList(cards.receivedWilaya.attribution),
+        },
+        {
+          key: 'failed_attempt',
+          label: statusNames.failedAttempt,
+          count: cards.failedAttempt.count,
+          attribution: toAttributionList(cards.failedAttempt.attribution),
+        },
+      ],
+      orders: filteredOrders,
+      count: filteredOrders.length,
+    };
+  }
+
   async getOrderHistory(orderId: number): Promise<OrderHistory[]> {
     return await this.orderHistoryRepository.find({
       where: { orderId },
