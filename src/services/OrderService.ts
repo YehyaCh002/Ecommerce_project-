@@ -819,6 +819,124 @@ export class OrderService {
     };
   }
 
+  async getRetoursStatistics(filters?: {
+    startDate?: string;
+    endDate?: string;
+    assignedToId?: number;
+    platformId?: number;
+    wilayaId?: number;
+    search?: string;
+  }): Promise<any> {
+    const query = this.orderRepository
+      .createQueryBuilder('order')
+      .leftJoinAndSelect('order.wilaya', 'wilaya')
+      .leftJoinAndSelect('order.deliveryPlatform', 'deliveryPlatform')
+      .leftJoinAndSelect('order.assignedTo', 'assignedTo')
+      .leftJoinAndSelect('order.orderItems', 'orderItems')
+      .leftJoinAndSelect('orderItems.product', 'product')
+      .where('order.validationOutcome = :returnedOutcome', {
+        returnedOutcome: ValidationOutcome.RETURNED,
+      })
+      .orderBy('order.updatedAt', 'DESC');
+
+    if (filters?.startDate) {
+      query.andWhere('order.updatedAt >= :startDate', {
+        startDate: new Date(filters.startDate),
+      });
+    }
+
+    if (filters?.endDate) {
+      const endDate = new Date(filters.endDate);
+      endDate.setHours(23, 59, 59, 999);
+      query.andWhere('order.updatedAt <= :endDate', { endDate });
+    }
+
+    if (filters?.assignedToId) {
+      query.andWhere('order.assignedToId = :assignedToId', {
+        assignedToId: filters.assignedToId,
+      });
+    }
+
+    if (filters?.platformId) {
+      query.andWhere('order.deliveryPlatformId = :platformId', {
+        platformId: filters.platformId,
+      });
+    }
+
+    if (filters?.wilayaId) {
+      query.andWhere('order.wilayaId = :wilayaId', {
+        wilayaId: filters.wilayaId,
+      });
+    }
+
+    if (filters?.search) {
+      query.andWhere(
+        new Brackets((qb) => {
+          qb.where('CAST(order.id AS TEXT) ILIKE :search', {
+            search: `%${filters.search}%`,
+          })
+            .orWhere('order.customerName ILIKE :search', {
+              search: `%${filters.search}%`,
+            })
+            .orWhere('order.phoneNumber ILIKE :search', {
+              search: `%${filters.search}%`,
+            });
+        })
+      );
+    }
+
+    const returnedOrders = (await query.getMany()) as Order[];
+
+    const deliveredCount = await this.orderRepository.count({
+      where: { status: OrderStatus.LIVRE },
+    });
+
+    const totalReturnedOrders = returnedOrders.length;
+    const returnedRevenue = returnedOrders.reduce(
+      (total, order) => total + Number(order.totalPrice || 0),
+      0
+    );
+
+    const averageReturnValue =
+      totalReturnedOrders > 0 ? returnedRevenue / totalReturnedOrders : 0;
+
+    const returnRateFromDelivered =
+      deliveredCount > 0 ? (totalReturnedOrders / deliveredCount) * 100 : 0;
+
+    const byWilayaMap = new Map<string, number>();
+    const byPlatformMap = new Map<string, number>();
+
+    for (const order of returnedOrders) {
+      const wilayaName = order.wilaya?.name || 'Unknown';
+      const platformName = order.deliveryPlatform?.name || 'Not assigned';
+
+      byWilayaMap.set(wilayaName, (byWilayaMap.get(wilayaName) || 0) + 1);
+      byPlatformMap.set(platformName, (byPlatformMap.get(platformName) || 0) + 1);
+    }
+
+    return {
+      summary: {
+        totalReturnedOrders,
+        deliveredCount,
+        returnRateFromDelivered: parseFloat(returnRateFromDelivered.toFixed(2)),
+        returnedRevenue: parseFloat(returnedRevenue.toFixed(2)),
+        averageReturnValue: parseFloat(averageReturnValue.toFixed(2)),
+      },
+      breakdown: {
+        byWilaya: Array.from(byWilayaMap.entries()).map(([name, count]) => ({
+          name,
+          count,
+        })),
+        byPlatform: Array.from(byPlatformMap.entries()).map(([name, count]) => ({
+          name,
+          count,
+        })),
+      },
+      orders: returnedOrders,
+      count: returnedOrders.length,
+    };
+  }
+
   async getOrderHistory(orderId: number): Promise<OrderHistory[]> {
     return await this.orderHistoryRepository.find({
       where: { orderId },

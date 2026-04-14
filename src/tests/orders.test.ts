@@ -9,6 +9,7 @@ const mockOrderService = {
   getAllOrders: jest.fn(),
   getReclamationOrders: jest.fn(),
   getCommandesStatistics: jest.fn(),
+  getRetoursStatistics: jest.fn(),
   updateOrderStatus: jest.fn(),
   updateOrder: jest.fn(),
   cancelOrder: jest.fn(),
@@ -220,6 +221,51 @@ describe('Order Routes Integration Tests', () => {
       const response = await sendAuthenticatedRequest(app, {
         method: 'GET',
         url: '/orders/stats/commandes?tab=on_alert',
+        userId,
+      });
+
+      expect(response.status).toBe(403);
+    });
+
+    it('should return retours statistics for admin and forward query', async () => {
+      mockOrderService.getRetoursStatistics.mockResolvedValueOnce({
+        summary: {
+          totalReturnedOrders: 2,
+          deliveredCount: 10,
+          returnRateFromDelivered: 20,
+          returnedRevenue: 5600,
+          averageReturnValue: 2800,
+        },
+        breakdown: {
+          byWilaya: [{ name: 'Alger', count: 2 }],
+          byPlatform: [{ name: 'Yalidine', count: 2 }],
+        },
+        orders: [{ id: 1 }, { id: 2 }],
+        count: 2,
+      });
+
+      const response = await sendAdminRequest(app, {
+        method: 'GET',
+        url: '/orders/stats/retours?startDate=2025-06-05&endDate=2025-06-10&assignedToId=1&platformId=2&wilayaId=16&search=055',
+      });
+
+      expect(response.status).toBe(200);
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.summary.totalReturnedOrders).toBe(2);
+      expect(mockOrderService.getRetoursStatistics).toHaveBeenCalledWith({
+        startDate: '2025-06-05',
+        endDate: '2025-06-10',
+        assignedToId: 1,
+        platformId: 2,
+        wilayaId: 16,
+        search: '055',
+      });
+    });
+
+    it('should return 403 for non-admin retours statistics access', async () => {
+      const response = await sendAuthenticatedRequest(app, {
+        method: 'GET',
+        url: '/orders/stats/retours',
         userId,
       });
 
