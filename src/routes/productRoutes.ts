@@ -8,6 +8,20 @@ export default async function productRoutes(fastify: FastifyInstance) {
 
   // Public routes
   fastify.get('/', (request, reply) => productController.getAllProducts(request, reply));
+
+  // Inventory movement routes (must be declared before /:id)
+  fastify.get(
+    '/stock-movements',
+    { preHandler: [authenticate, requireAdmin] },
+    (request, reply) => productController.getStockMovements(request, reply)
+  );
+
+  fastify.get(
+    '/stock-movements/:id',
+    { preHandler: [authenticate, requireAdmin] },
+    (request, reply) => productController.getStockMovementDetails(request, reply)
+  );
+
   fastify.get('/:id', (request, reply) => productController.getProductById(request, reply));
 
   // Admin routes

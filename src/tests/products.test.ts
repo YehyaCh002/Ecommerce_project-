@@ -9,6 +9,8 @@ const mockProductService = {
   updateProduct: jest.fn(),
   deleteProduct: jest.fn(),
   updateStock: jest.fn(),
+  getStockMovements: jest.fn(),
+  getStockMovementDetails: jest.fn(),
 };
 
 jest.mock('../services/ProductService', () => ({
@@ -106,6 +108,97 @@ describe('Product Routes Integration Tests', () => {
       expect(response.status).toBe(404);
       expect(response.body.success).toBe(false);
       expect(response.body.message).toBe('Product not found');
+    });
+  });
+
+  // ============================
+  // GET /products/stock-movements (admin-only)
+  // ============================
+  describe('GET /products/stock-movements', () => {
+    it('should return 200 and stock movement rows for admin', async () => {
+      mockProductService.getStockMovements.mockResolvedValueOnce([
+        {
+          id: 1,
+          productId: 555,
+          productName: 'ZooM Vintage',
+          type: 'manual',
+          totalChanges: 90,
+          oldStock: 89,
+          newStock: 179,
+        },
+      ]);
+
+      const response = await sendAdminRequest(app, {
+        method: 'GET',
+        url: '/products/stock-movements?types=manual&startDate=2025-06-01&endDate=2025-06-10&categorySearch=Shoes',
+      });
+
+      expect(response.status).toBe(200);
+      expect(response.body.success).toBe(true);
+      expect(response.body.count).toBe(1);
+      expect(mockProductService.getStockMovements).toHaveBeenCalledWith({
+        types: ['manual'],
+        startDate: '2025-06-01',
+        endDate: '2025-06-10',
+        categorySearch: 'Shoes',
+      });
+    });
+
+    it('should return 403 for non-admin stock movements access', async () => {
+      const response = await sendRequest(app, {
+        method: 'GET',
+        url: '/products/stock-movements',
+        headers: {
+          'x-user-id': '5',
+          'x-user-role': 'customer',
+        },
+      });
+
+      expect(response.status).toBe(403);
+    });
+  });
+
+  // ============================
+  // GET /products/stock-movements/:id (admin-only)
+  // ============================
+  describe('GET /products/stock-movements/:id', () => {
+    it('should return 200 and movement details for admin', async () => {
+      mockProductService.getStockMovementDetails.mockResolvedValueOnce({
+        id: 1,
+        productId: 555,
+        details: {
+          colors: {
+            BLACK: {
+              oldStock: 67,
+              newStock: 77,
+              sizes: [
+                { size: '40', oldStock: 18, newStock: 23 },
+              ],
+            },
+          },
+        },
+      });
+
+      const response = await sendAdminRequest(app, {
+        method: 'GET',
+        url: '/products/stock-movements/1',
+      });
+
+      expect(response.status).toBe(200);
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.id).toBe(1);
+    });
+
+    it('should return 404 when movement is missing', async () => {
+      mockProductService.getStockMovementDetails.mockResolvedValueOnce(null);
+
+      const response = await sendAdminRequest(app, {
+        method: 'GET',
+        url: '/products/stock-movements/9999',
+      });
+
+      expect(response.status).toBe(404);
+      expect(response.body.message).toBe('Stock movement not found');
     });
   });
 

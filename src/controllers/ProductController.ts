@@ -129,10 +129,15 @@ export class ProductController {
   ): Promise<void> => {
     try {
       const { id } = req.params as { id: string };
-      const { quantity } = req.body as { quantity: number };
+      const { quantity, type, variantUpdates } = req.body as {
+        quantity: number;
+        type?: string;
+        variantUpdates?: Array<{ variantId: number; newStock: number }>;
+      };
       const product = await this.productService.updateStock(
         parseInt(id, 10),
-        quantity
+        quantity,
+        { type, variantUpdates }
       );
       if (!product) {
         res.status(404).send({
@@ -144,6 +149,63 @@ export class ProductController {
       res.status(200).send({
         success: true,
         data: product,
+      });
+    } catch (error) {
+      throw error;
+    }
+  };
+
+  getStockMovements = async (
+    req: FastifyRequest,
+    res: FastifyReply
+  ): Promise<void> => {
+    try {
+      const query = (req.query as any) || {};
+      const types = query.types
+        ? String(query.types)
+            .split(',')
+            .map((value) => value.trim())
+            .filter(Boolean)
+        : undefined;
+
+      const movements = await this.productService.getStockMovements({
+        types,
+        startDate: query.startDate,
+        endDate: query.endDate,
+        categorySearch: query.categorySearch,
+      });
+
+      res.status(200).send({
+        success: true,
+        data: movements,
+        count: movements.length,
+      });
+    } catch (error) {
+      throw error;
+    }
+  };
+
+  getStockMovementDetails = async (
+    req: FastifyRequest,
+    res: FastifyReply
+  ): Promise<void> => {
+    try {
+      const { id } = req.params as { id: string };
+      const movement = await this.productService.getStockMovementDetails(
+        parseInt(id, 10)
+      );
+
+      if (!movement) {
+        res.status(404).send({
+          success: false,
+          message: 'Stock movement not found',
+        });
+        return;
+      }
+
+      res.status(200).send({
+        success: true,
+        data: movement,
       });
     } catch (error) {
       throw error;
