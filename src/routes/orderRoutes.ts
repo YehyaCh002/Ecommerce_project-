@@ -38,6 +38,30 @@ export default async function orderRoutes(fastify: FastifyInstance) {
     (request, reply) => orderController.getReclamationOrders(request, reply)
   );
 
+  fastify.post(
+    '/vendor-returns/batches',
+    { preHandler: [authenticate, requireAdmin] },
+    (request, reply) => orderController.createVendorReturnBatch(request, reply)
+  );
+
+  fastify.get(
+    '/vendor-returns/batches/:id',
+    { preHandler: [authenticate, requireAdmin] },
+    (request, reply) => orderController.getVendorReturnBatchSummary(request, reply)
+  );
+
+  fastify.post(
+    '/vendor-returns/batches/:id/scan',
+    { preHandler: [authenticate, requireAdmin] },
+    (request, reply) => orderController.scanVendorReturnParcel(request, reply)
+  );
+
+  fastify.post(
+    '/vendor-returns/batches/:id/close',
+    { preHandler: [authenticate, requireAdmin] },
+    (request, reply) => orderController.closeVendorReturnBatch(request, reply)
+  );
+
   fastify.get('/:id', (request, reply) => orderController.getOrderById(request, reply));
 
   fastify.get(

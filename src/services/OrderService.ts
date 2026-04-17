@@ -12,6 +12,11 @@ import { OrderHistory, OrderAction } from '../entities/OrderHistory';
 import { Customer } from '../entities/Customer';
 import { DeliveryPlatform } from '../entities/DeliveryPlatform';
 import { TrackingLog } from '../entities/TrackingLog';
+import {
+  VendorReturnBatch,
+  VendorReturnBatchStatus,
+} from '../entities/VendorReturnBatch';
+import { VendorReturnScan } from '../entities/VendorReturnScan';
 import { CartService } from './CartService';
 import { ProductService } from './ProductService';
 
@@ -23,6 +28,8 @@ export class OrderService {
   customerRepository: any;
   platformRepository: any;
   trackingLogRepository: any;
+  vendorReturnBatchRepository: any;
+  vendorReturnScanRepository: any;
   cartService: any;
   productService: any;
 
@@ -34,7 +41,9 @@ export class OrderService {
     platformRepository?: any,
     trackingLogRepository?: any,
     cartService?: any,
-    productService?: any
+    productService?: any,
+    vendorReturnBatchRepository?: any,
+    vendorReturnScanRepository?: any
   ) {
     this.orderRepository = orderRepository || AppDataSource.getRepository(Order);
     this.orderItemRepository = orderItemRepository || AppDataSource.getRepository(OrderItem);
@@ -42,8 +51,66 @@ export class OrderService {
     this.customerRepository = customerRepository || AppDataSource.getRepository(Customer);
     this.platformRepository = platformRepository || AppDataSource.getRepository(DeliveryPlatform);
     this.trackingLogRepository = trackingLogRepository || AppDataSource.getRepository(TrackingLog);
+    this.vendorReturnBatchRepository = vendorReturnBatchRepository || null;
+    this.vendorReturnScanRepository = vendorReturnScanRepository || null;
     this.cartService = cartService || new CartService();
     this.productService = productService || new ProductService();
+  }
+
+  private ensureVendorReturnRepositories(): void {
+    if (!this.vendorReturnBatchRepository) {
+      this.vendorReturnBatchRepository = AppDataSource.getRepository(VendorReturnBatch);
+    }
+
+    if (!this.vendorReturnScanRepository) {
+      this.vendorReturnScanRepository = AppDataSource.getRepository(VendorReturnScan);
+    }
+  }
+
+  private normalizeTrackingNumber(value?: string): string {
+    return (value || '').trim().toUpperCase();
+  }
+
+  private shouldDeductOnConfirmation(product: any): boolean {
+    return product?.deductStockOnConfirmation !== false;
+  }
+
+  private isStockDeductionTriggerStatus(status: OrderStatus): boolean {
+    return [
+      OrderStatus.CONFIRME,
+      OrderStatus.OTP_CONFIRME,
+      OrderStatus.VERS_LA_WILAYA,
+      OrderStatus.RECU_A_LA_WILAYA,
+      OrderStatus.LIVRE,
+    ].includes(status);
+  }
+
+  private async deductDeferredStockForOrder(order: Order): Promise<void> {
+    const items = order.orderItems || [];
+    for (const item of items) {
+      const product = item.product || (await this.productService.getProductById(item.productId));
+      if (!this.shouldDeductOnConfirmation(product)) {
+        continue;
+      }
+
+      if (item.variantId) {
+        const success = await this.productService.decreaseVariantStock(
+          item.variantId,
+          item.quantity
+        );
+        if (!success) {
+          throw new Error(`Insufficient stock for deferred variant ${item.variantId}`);
+        }
+      } else {
+        const success = await this.productService.decreaseStock(
+          item.productId,
+          item.quantity
+        );
+        if (!success) {
+          throw new Error(`Insufficient stock for deferred product ${item.productId}`);
+        }
+      }
+    }
   }
 
   private async checkIsPotentialDuplicate(phoneNumber: string): Promise<boolean> {
@@ -190,7 +257,7 @@ export class OrderService {
       );
     }
 
-    // Create order items and decrease stock
+    // Create order items and decrease stock only for products configured to deduct immediately.
     for (const cartItem of cart.cartItems) {
       const orderItem = this.orderItemRepository.create({
         orderId: savedOrder.id,
@@ -200,10 +267,13 @@ export class OrderService {
       });
 
       await this.orderItemRepository.save(orderItem);
-      await this.productService.decreaseStock(
-        cartItem.productId,
-        cartItem.quantity
-      );
+
+      if (!this.shouldDeductOnConfirmation(cartItem.product)) {
+        await this.productService.decreaseStock(
+          cartItem.productId,
+          cartItem.quantity
+        );
+      }
     }
 
     // Clear cart
@@ -324,7 +394,7 @@ export class OrderService {
       );
     }
 
-    // 6. Create order items and decrease stock
+    // 6. Create order items and decrease stock only for products configured to deduct immediately.
     for (const item of validatedItems) {
       const orderItem = this.orderItemRepository.create({
         orderId: savedOrder.id,
@@ -336,10 +406,12 @@ export class OrderService {
 
       await this.orderItemRepository.save(orderItem);
 
-      if (item.variant) {
-        await this.productService.decreaseVariantStock(item.variant.id, item.quantity);
-      } else {
-        await this.productService.decreaseStock(item.product.id, item.quantity);
+      if (!this.shouldDeductOnConfirmation(item.product)) {
+        if (item.variant) {
+          await this.productService.decreaseVariantStock(item.variant.id, item.quantity);
+        } else {
+          await this.productService.decreaseStock(item.product.id, item.quantity);
+        }
       }
     }
 
@@ -395,6 +467,200 @@ export class OrderService {
       relations: ['orderItems', 'orderItems.product', 'customer', 'wilaya', 'assignedTo'],
       order: { createdAt: 'DESC' },
     });
+  }
+
+  async createVendorReturnBatch(input: {
+    dischargeReference: string;
+    trackingNumbers: string[];
+    deliveryPlatformId?: number;
+    notes?: string;
+    createdByUserId?: number;
+  }): Promise<any> {
+    this.ensureVendorReturnRepositories();
+
+    const dischargeReference = (input.dischargeReference || '').trim();
+    if (!dischargeReference) {
+      throw new Error('Discharge reference is required');
+    }
+
+    const uniqueTrackingNumbers = Array.from(
+      new Set((input.trackingNumbers || []).map((value) => this.normalizeTrackingNumber(value)).filter(Boolean))
+    );
+
+    if (uniqueTrackingNumbers.length === 0) {
+      throw new Error('At least one tracking number is required');
+    }
+
+    const batch = this.vendorReturnBatchRepository.create({
+      dischargeReference,
+      expectedTrackingNumbers: uniqueTrackingNumbers,
+      expectedCount: uniqueTrackingNumbers.length,
+      deliveryPlatformId: input.deliveryPlatformId,
+      notes: input.notes,
+      createdByUserId: input.createdByUserId,
+      status: VendorReturnBatchStatus.OPEN,
+    });
+
+    const savedBatch = await this.vendorReturnBatchRepository.save(batch);
+    return this.getVendorReturnBatchSummary(savedBatch.id);
+  }
+
+  async scanVendorReturnParcel(input: {
+    batchId: number;
+    trackingNumber: string;
+    scannedByUserId?: number;
+  }): Promise<any> {
+    this.ensureVendorReturnRepositories();
+
+    const batch = await this.vendorReturnBatchRepository.findOne({
+      where: { id: input.batchId },
+    });
+
+    if (!batch) {
+      throw new Error('Vendor return batch not found');
+    }
+
+    if (batch.status !== VendorReturnBatchStatus.OPEN) {
+      throw new Error('Batch is already closed');
+    }
+
+    const trackingNumber = this.normalizeTrackingNumber(input.trackingNumber);
+    if (!trackingNumber) {
+      throw new Error('Tracking number is required');
+    }
+
+    const duplicateScan = await this.vendorReturnScanRepository.findOne({
+      where: {
+        batchId: input.batchId,
+        trackingNumber,
+      },
+    });
+
+    if (duplicateScan) {
+      throw new Error('Tracking number already scanned in this batch');
+    }
+
+    const matchedOrder = await this.orderRepository
+      .createQueryBuilder('order')
+      .where('UPPER(order.trackingNumber) = :trackingNumber', { trackingNumber })
+      .getOne();
+
+    const scan = this.vendorReturnScanRepository.create({
+      batchId: input.batchId,
+      trackingNumber,
+      orderId: matchedOrder?.id,
+      scannedByUserId: input.scannedByUserId,
+    });
+
+    await this.vendorReturnScanRepository.save(scan);
+    return this.getVendorReturnBatchSummary(input.batchId);
+  }
+
+  async closeVendorReturnBatch(input: {
+    batchId: number;
+    closedByUserId?: number;
+    note?: string;
+  }): Promise<any> {
+    this.ensureVendorReturnRepositories();
+
+    const batch = await this.vendorReturnBatchRepository.findOne({
+      where: { id: input.batchId },
+    });
+
+    if (!batch) {
+      throw new Error('Vendor return batch not found');
+    }
+
+    if (batch.status === VendorReturnBatchStatus.CLOSED) {
+      throw new Error('Batch is already closed');
+    }
+
+    batch.status = VendorReturnBatchStatus.CLOSED;
+    batch.closedAt = new Date();
+    batch.closedByUserId = input.closedByUserId;
+    if (input.note) {
+      batch.notes = batch.notes
+        ? `${batch.notes}\n[Closed] ${input.note}`
+        : `[Closed] ${input.note}`;
+    }
+
+    await this.vendorReturnBatchRepository.save(batch);
+    return this.getVendorReturnBatchSummary(input.batchId);
+  }
+
+  async getVendorReturnBatchSummary(batchId: number): Promise<any> {
+    this.ensureVendorReturnRepositories();
+
+    const batch = await this.vendorReturnBatchRepository.findOne({
+      where: { id: batchId },
+      relations: ['deliveryPlatform', 'createdByUser', 'closedByUser', 'scans', 'scans.order'],
+    });
+
+    if (!batch) {
+      throw new Error('Vendor return batch not found');
+    }
+
+    const expectedTrackingNumbers = (batch.expectedTrackingNumbers || []).map(
+      (value: string) => this.normalizeTrackingNumber(value)
+    );
+    const expectedSet = new Set(expectedTrackingNumbers);
+
+    const scannedTrackingNumbers = (batch.scans || []).map((scan: VendorReturnScan) =>
+      this.normalizeTrackingNumber(scan.trackingNumber)
+    );
+    const scannedSet = new Set(scannedTrackingNumbers);
+
+    const missingTrackingNumbers = expectedTrackingNumbers.filter(
+      (trackingNumber: string) => !scannedSet.has(trackingNumber)
+    );
+
+    const unexpectedTrackingNumbers = scannedTrackingNumbers.filter(
+      (trackingNumber: string) => !expectedSet.has(trackingNumber)
+    );
+
+    const matchedCount = scannedTrackingNumbers.filter(
+      (trackingNumber: string) => expectedSet.has(trackingNumber)
+    ).length;
+
+    const declaredCount = batch.expectedCount || expectedTrackingNumbers.length;
+    const scannedCount = scannedTrackingNumbers.length;
+    const completionRate =
+      declaredCount > 0
+        ? Number(((matchedCount / declaredCount) * 100).toFixed(2))
+        : 0;
+
+    return {
+      batch: {
+        id: batch.id,
+        dischargeReference: batch.dischargeReference,
+        status: batch.status,
+        deliveryPlatformId: batch.deliveryPlatformId,
+        deliveryPlatform: batch.deliveryPlatform,
+        notes: batch.notes,
+        expectedCount: declaredCount,
+        createdByUserId: batch.createdByUserId,
+        closedByUserId: batch.closedByUserId,
+        createdAt: batch.createdAt,
+        closedAt: batch.closedAt,
+      },
+      summary: {
+        declaredCount,
+        scannedCount,
+        matchedCount,
+        missingCount: missingTrackingNumbers.length,
+        unexpectedCount: unexpectedTrackingNumbers.length,
+        completionRate,
+      },
+      missingTrackingNumbers,
+      unexpectedTrackingNumbers,
+      scans: (batch.scans || []).map((scan: VendorReturnScan) => ({
+        id: scan.id,
+        trackingNumber: scan.trackingNumber,
+        orderId: scan.orderId,
+        scannedByUserId: scan.scannedByUserId,
+        scannedAt: scan.scannedAt,
+      })),
+    };
   }
 
   private hasFailedDeliverySignal(order: Order): boolean {
@@ -1254,6 +1520,14 @@ export class OrderService {
       statusPatch.validatedAt = null;
     }
 
+    const shouldDeductNow =
+      this.isStockDeductionTriggerStatus(status) &&
+      !this.isStockDeductionTriggerStatus(oldStatus);
+
+    if (shouldDeductNow) {
+      await this.deductDeferredStockForOrder(order);
+    }
+
     await this.orderRepository.update(id, statusPatch);
 
     await this.addOrderHistory(
@@ -1534,12 +1808,14 @@ export class OrderService {
       throw new Error('Cannot cancel shipped or delivered orders');
     }
 
-    // Restore stock
+    // Restore stock only if this order had already deducted it.
     for (const item of order.orderItems) {
-      const product = await this.productService.getProductById(
-        item.productId
-      );
-      if (product) {
+      const product = item.product || (await this.productService.getProductById(item.productId));
+      const stockWasDeducted =
+        !this.shouldDeductOnConfirmation(product) ||
+        this.isStockDeductionTriggerStatus(order.status);
+
+      if (product && stockWasDeducted) {
         await this.productService.updateStock(
           product.id,
           product.stock + item.quantity
@@ -1589,12 +1865,14 @@ export class OrderService {
       throw new Error('Order is not in requested cancellation state');
     }
 
-    // Restore stock
+    // Restore stock only if this order had already deducted it.
     for (const item of order.orderItems) {
-      const product = await this.productService.getProductById(
-        item.productId
-      );
-      if (product) {
+      const product = item.product || (await this.productService.getProductById(item.productId));
+      const stockWasDeducted =
+        !this.shouldDeductOnConfirmation(product) ||
+        this.isStockDeductionTriggerStatus(order.status);
+
+      if (product && stockWasDeducted) {
         await this.productService.updateStock(
           product.id,
           product.stock + item.quantity

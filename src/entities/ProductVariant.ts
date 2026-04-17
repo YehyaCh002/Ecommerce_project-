@@ -45,6 +45,9 @@ export class ProductVariant {
   @Column({ type: 'varchar', length: 255, nullable: true })
   sku: string;
 
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  imageUrl: string;
+
   @OneToMany(() => OrderItem, (orderItem) => orderItem.productVariant)
   orderItems: OrderItem[];
 

@@ -228,6 +228,54 @@ describe('Product Routes Integration Tests', () => {
       expect(response.body.data.name).toBe(validProduct.name);
     });
 
+    it('should accept advanced payload with sub-category, variants and landing page toggle', async () => {
+      mockProductService.createProduct.mockResolvedValueOnce({
+        id: '124',
+        name: 'Sneaker X',
+        categoryId: 10,
+        subCategoryId: 11,
+        isLandingPageProduct: true,
+        deductStockOnConfirmation: true,
+        expectedMarginPercent: 57.14,
+      });
+
+      const payload = {
+        name: 'Sneaker X',
+        description: 'Lightweight running shoe',
+        price: 3500,
+        costPrice: 1500,
+        stock: 15,
+        categoryId: 10,
+        subCategoryId: 11,
+        isLandingPageProduct: true,
+        deductStockOnConfirmation: true,
+        variants: [
+          {
+            size: '42',
+            color: 'Black',
+            stock: 5,
+            imageUrl: 'https://cdn.example.com/black-42.jpg',
+          },
+          {
+            size: '43',
+            color: 'Blue',
+            stock: 10,
+            imageUrl: 'https://cdn.example.com/blue-43.jpg',
+          },
+        ],
+      };
+
+      const response = await sendAdminRequest(app, {
+        method: 'POST',
+        url: '/products',
+        payload,
+      });
+
+      expect(response.status).toBe(201);
+      expect(response.body.success).toBe(true);
+      expect(mockProductService.createProduct).toHaveBeenCalledWith(payload);
+    });
+
     it('should return 401 when no auth headers are provided', async () => {
       const response = await sendRequest(app, {
         method: 'POST',

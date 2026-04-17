@@ -3,7 +3,10 @@ export const categorySchema = {
     type: 'object',
     required: ['name'],
     properties: {
-      name: { type: 'string', minLength: 1 }
+      name: { type: 'string', minLength: 1 },
+      description: { type: 'string' },
+      slug: { type: 'string' },
+      parentCategoryId: { type: 'number' }
     }
   }
 };

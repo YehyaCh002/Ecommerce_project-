@@ -8,7 +8,17 @@ export class CategoryService {
     name: string;
     description?: string;
     slug?: string;
+    parentCategoryId?: number;
   }): Promise<Category> {
+    if (data.parentCategoryId) {
+      const parent = await this.categoryRepository.findOne({
+        where: { id: data.parentCategoryId },
+      });
+      if (!parent) {
+        throw new Error('Parent category not found');
+      }
+    }
+
     // Check for existing category by name to avoid duplicate key errors
     const existing = await this.categoryRepository.findOne({
       where: { name: data.name },
@@ -23,7 +33,7 @@ export class CategoryService {
 
   async getAllCategories(): Promise<Category[]> {
     return await this.categoryRepository.find({
-      relations: ['products'],
+      relations: ['products', 'parentCategory', 'subCategories'],
       order: { name: 'ASC' },
     });
   }
@@ -31,7 +41,7 @@ export class CategoryService {
   async getCategoryById(id: number): Promise<Category | null> {
     return await this.categoryRepository.findOne({
       where: { id },
-      relations: ['products'],
+      relations: ['products', 'parentCategory', 'subCategories'],
     });
   }
 

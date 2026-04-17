@@ -754,6 +754,159 @@ export class OrderController {
     }
   };
 
+  createVendorReturnBatch = async (
+    req: AuthRequest,
+    res: FastifyReply
+  ): Promise<void> => {
+    try {
+      const body = (req.body as any) || {};
+      const userRole = req.userRole || body.userRole;
+      if (userRole !== 'admin') {
+        res.status(403).send({
+          success: false,
+          message: 'Admin access required',
+        });
+        return;
+      }
+
+      const trackingNumbers = Array.isArray(body.trackingNumbers)
+        ? body.trackingNumbers
+        : [];
+
+      const data = await this.orderService.createVendorReturnBatch({
+        dischargeReference: body.dischargeReference,
+        trackingNumbers,
+        deliveryPlatformId: body.deliveryPlatformId
+          ? parseInt(String(body.deliveryPlatformId), 10)
+          : undefined,
+        notes: body.notes,
+        createdByUserId: req.userId,
+      });
+
+      res.status(201).send({
+        success: true,
+        data,
+      });
+    } catch (error) {
+      res.status(400).send({
+        success: false,
+        message:
+          error instanceof Error
+            ? error.message
+            : 'Failed to create vendor return batch',
+      });
+    }
+  };
+
+  scanVendorReturnParcel = async (
+    req: AuthRequest,
+    res: FastifyReply
+  ): Promise<void> => {
+    try {
+      const body = (req.body as any) || {};
+      const userRole = req.userRole || body.userRole;
+      if (userRole !== 'admin') {
+        res.status(403).send({
+          success: false,
+          message: 'Admin access required',
+        });
+        return;
+      }
+
+      const { id } = req.params as { id: string };
+      const data = await this.orderService.scanVendorReturnParcel({
+        batchId: parseInt(id, 10),
+        trackingNumber: body.trackingNumber,
+        scannedByUserId: req.userId,
+      });
+
+      res.status(200).send({
+        success: true,
+        data,
+      });
+    } catch (error) {
+      res.status(400).send({
+        success: false,
+        message:
+          error instanceof Error
+            ? error.message
+            : 'Failed to scan vendor return parcel',
+      });
+    }
+  };
+
+  getVendorReturnBatchSummary = async (
+    req: AuthRequest,
+    res: FastifyReply
+  ): Promise<void> => {
+    try {
+      const body = (req.body as any) || {};
+      const userRole = req.userRole || body.userRole;
+      if (userRole !== 'admin') {
+        res.status(403).send({
+          success: false,
+          message: 'Admin access required',
+        });
+        return;
+      }
+
+      const { id } = req.params as { id: string };
+      const data = await this.orderService.getVendorReturnBatchSummary(
+        parseInt(id, 10)
+      );
+
+      res.status(200).send({
+        success: true,
+        data,
+      });
+    } catch (error) {
+      res.status(404).send({
+        success: false,
+        message:
+          error instanceof Error
+            ? error.message
+            : 'Failed to fetch vendor return batch',
+      });
+    }
+  };
+
+  closeVendorReturnBatch = async (
+    req: AuthRequest,
+    res: FastifyReply
+  ): Promise<void> => {
+    try {
+      const body = (req.body as any) || {};
+      const userRole = req.userRole || body.userRole;
+      if (userRole !== 'admin') {
+        res.status(403).send({
+          success: false,
+          message: 'Admin access required',
+        });
+        return;
+      }
+
+      const { id } = req.params as { id: string };
+      const data = await this.orderService.closeVendorReturnBatch({
+        batchId: parseInt(id, 10),
+        closedByUserId: req.userId,
+        note: body.note,
+      });
+
+      res.status(200).send({
+        success: true,
+        data,
+      });
+    } catch (error) {
+      res.status(400).send({
+        success: false,
+        message:
+          error instanceof Error
+            ? error.message
+            : 'Failed to close vendor return batch',
+      });
+    }
+  };
+
   getWilayaTrackingOrders = async (
     req: AuthRequest,
     res: FastifyReply

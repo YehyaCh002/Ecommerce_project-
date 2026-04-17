@@ -15,7 +15,13 @@ export class ProductController {
         data: product,
       });
     } catch (error) {
-      throw error;
+      res.status(400).send({
+        success: false,
+        message:
+          error instanceof Error
+            ? error.message
+            : 'Failed to create product',
+      });
     }
   };
 
@@ -96,7 +102,13 @@ export class ProductController {
         data: product,
       });
     } catch (error) {
-      throw error;
+      res.status(400).send({
+        success: false,
+        message:
+          error instanceof Error
+            ? error.message
+            : 'Failed to update product',
+      });
     }
   };
 

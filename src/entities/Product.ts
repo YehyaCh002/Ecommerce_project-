@@ -16,6 +16,7 @@ import { ProductVariant } from './ProductVariant';
 
 @Entity('products')
 @Index(['categoryId'])
+@Index(['subCategoryId'])
 @Index(['sku'])
 @Index(['isActive'])
 export class Product {
@@ -31,6 +32,9 @@ export class Product {
   @Column({ type: 'decimal', precision: 10, scale: 2 })
   price: number;
 
+  @Column({ type: 'decimal', precision: 10, scale: 2, default: 0 })
+  costPrice: number;
+
   @Column({ type: 'int', default: 0 })
   stock: number;
 
@@ -43,6 +47,12 @@ export class Product {
   @Column({ type: 'boolean', default: true })
   isActive: boolean;
 
+  @Column({ type: 'boolean', default: false })
+  isLandingPageProduct: boolean;
+
+  @Column({ type: 'boolean', default: true })
+  deductStockOnConfirmation: boolean;
+
   @ManyToOne(() => Category, (category) => category.products, {
     onDelete: 'SET NULL',
   })
@@ -51,6 +61,15 @@ export class Product {
 
   @Column({ type: 'int', nullable: true })
   categoryId: number;
+
+  @ManyToOne(() => Category, (category) => category.subCategoryProducts, {
+    onDelete: 'SET NULL',
+  })
+  @JoinColumn({ name: 'subCategoryId' })
+  subCategory: Category;
+
+  @Column({ type: 'int', nullable: true })
+  subCategoryId: number;
 
   @OneToMany(() => OrderItem, (orderItem) => orderItem.product)
   orderItems: OrderItem[];

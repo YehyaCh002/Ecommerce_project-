@@ -12,6 +12,10 @@ const mockOrderService = {
   getRetoursStatistics: jest.fn(),
   getEchecsStatistics: jest.fn(),
   getVenteStockStatistics: jest.fn(),
+  createVendorReturnBatch: jest.fn(),
+  getVendorReturnBatchSummary: jest.fn(),
+  scanVendorReturnParcel: jest.fn(),
+  closeVendorReturnBatch: jest.fn(),
   updateOrderStatus: jest.fn(),
   updateOrder: jest.fn(),
   cancelOrder: jest.fn(),
@@ -364,6 +368,114 @@ describe('Order Routes Integration Tests', () => {
         method: 'GET',
         url: '/orders/stats/vente-stock',
         userId,
+      });
+
+      expect(response.status).toBe(403);
+    });
+
+    it('should create a vendor return batch for admin', async () => {
+      mockOrderService.createVendorReturnBatch.mockResolvedValueOnce({
+        batch: { id: 9, dischargeReference: 'BATCH-2025-06-12' },
+        summary: { declaredCount: 2, scannedCount: 0, missingCount: 2 },
+      });
+
+      const response = await sendAdminRequest(app, {
+        method: 'POST',
+        url: '/orders/vendor-returns/batches',
+        payload: {
+          dischargeReference: 'BATCH-2025-06-12',
+          trackingNumbers: ['TRK1', 'TRK2'],
+          deliveryPlatformId: 3,
+          notes: 'Retour du jour',
+        },
+      });
+
+      expect(response.status).toBe(201);
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.batch.id).toBe(9);
+      expect(mockOrderService.createVendorReturnBatch).toHaveBeenCalledWith({
+        dischargeReference: 'BATCH-2025-06-12',
+        trackingNumbers: ['TRK1', 'TRK2'],
+        deliveryPlatformId: 3,
+        notes: 'Retour du jour',
+        createdByUserId: 1,
+      });
+    });
+
+    it('should return vendor return batch summary for admin', async () => {
+      mockOrderService.getVendorReturnBatchSummary.mockResolvedValueOnce({
+        batch: { id: 9, status: 'open' },
+        summary: { declaredCount: 2, scannedCount: 1, missingCount: 1 },
+      });
+
+      const response = await sendAdminRequest(app, {
+        method: 'GET',
+        url: '/orders/vendor-returns/batches/9',
+      });
+
+      expect(response.status).toBe(200);
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.batch.status).toBe('open');
+      expect(mockOrderService.getVendorReturnBatchSummary).toHaveBeenCalledWith(9);
+    });
+
+    it('should scan vendor return parcel for admin', async () => {
+      mockOrderService.scanVendorReturnParcel.mockResolvedValueOnce({
+        batch: { id: 9 },
+        summary: { declaredCount: 2, scannedCount: 2, missingCount: 0 },
+      });
+
+      const response = await sendAdminRequest(app, {
+        method: 'POST',
+        url: '/orders/vendor-returns/batches/9/scan',
+        payload: {
+          trackingNumber: 'TRK2',
+        },
+      });
+
+      expect(response.status).toBe(200);
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.summary.scannedCount).toBe(2);
+      expect(mockOrderService.scanVendorReturnParcel).toHaveBeenCalledWith({
+        batchId: 9,
+        trackingNumber: 'TRK2',
+        scannedByUserId: 1,
+      });
+    });
+
+    it('should close vendor return batch for admin', async () => {
+      mockOrderService.closeVendorReturnBatch.mockResolvedValueOnce({
+        batch: { id: 9, status: 'closed' },
+        summary: { declaredCount: 2, scannedCount: 2, missingCount: 0 },
+      });
+
+      const response = await sendAdminRequest(app, {
+        method: 'POST',
+        url: '/orders/vendor-returns/batches/9/close',
+        payload: {
+          note: 'All parcels verified',
+        },
+      });
+
+      expect(response.status).toBe(200);
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.batch.status).toBe('closed');
+      expect(mockOrderService.closeVendorReturnBatch).toHaveBeenCalledWith({
+        batchId: 9,
+        closedByUserId: 1,
+        note: 'All parcels verified',
+      });
+    });
+
+    it('should return 403 for non-admin vendor return access', async () => {
+      const response = await sendAuthenticatedRequest(app, {
+        method: 'POST',
+        url: '/orders/vendor-returns/batches',
+        userId,
+        payload: {
+          dischargeReference: 'X',
+          trackingNumbers: ['TRK1'],
+        },
       });
 
       expect(response.status).toBe(403);

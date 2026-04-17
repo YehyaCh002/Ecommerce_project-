@@ -14,6 +14,8 @@ import { DeliveryPlatform } from '../entities/DeliveryPlatform';
 import { ProductVariant } from '../entities/ProductVariant';
 import { TrackingLog } from '../entities/TrackingLog';
 import { StockMovement } from '../entities/StockMovement';
+import { VendorReturnBatch } from '../entities/VendorReturnBatch';
+import { VendorReturnScan } from '../entities/VendorReturnScan';
 
 dotenv.config();
 
@@ -33,7 +35,7 @@ export const AppDataSource = new DataSource({
   database: process.env.DB_NAME || 'ecommerce',
   synchronize: false,
   logging: process.env.NODE_ENV === 'development',
-  entities: [User, Product, Category, Order, OrderItem, Cart, CartItem, Wilaya, OrderHistory, Customer, DeliveryPlatform, ProductVariant, TrackingLog, StockMovement],
+  entities: [User, Product, Category, Order, OrderItem, Cart, CartItem, Wilaya, OrderHistory, Customer, DeliveryPlatform, ProductVariant, TrackingLog, StockMovement, VendorReturnBatch, VendorReturnScan],
   migrations: [
     process.env.NODE_ENV === 'production' 
       ? 'dist/migrations/**/*.js' 

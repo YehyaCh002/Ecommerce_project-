@@ -22,6 +22,13 @@ export class CategoryController {
         });
         return;
       }
+      if (error instanceof Error && error.message.includes('Parent category not found')) {
+        res.status(400).send({
+          success: false,
+          message: error.message,
+        });
+        return;
+      }
       throw error;
     }
   };
