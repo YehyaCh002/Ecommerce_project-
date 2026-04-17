@@ -163,7 +163,49 @@ export class ProductController {
         data: product,
       });
     } catch (error) {
-      throw error;
+      res.status(400).send({
+        success: false,
+        message:
+          error instanceof Error
+            ? error.message
+            : 'Failed to update stock',
+      });
+    }
+  };
+
+  updateProductStatus = async (
+    req: FastifyRequest,
+    res: FastifyReply
+  ): Promise<void> => {
+    try {
+      const { id } = req.params as { id: string };
+      const { isActive } = req.body as { isActive: boolean };
+
+      const product = await this.productService.setProductActiveState(
+        parseInt(id, 10),
+        isActive
+      );
+
+      if (!product) {
+        res.status(404).send({
+          success: false,
+          message: 'Product not found',
+        });
+        return;
+      }
+
+      res.status(200).send({
+        success: true,
+        data: product,
+      });
+    } catch (error) {
+      res.status(400).send({
+        success: false,
+        message:
+          error instanceof Error
+            ? error.message
+            : 'Failed to update product status',
+      });
     }
   };
 

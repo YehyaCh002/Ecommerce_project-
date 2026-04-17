@@ -50,3 +50,13 @@ export const updateProductSchema = {
     }
   }
 };
+
+export const updateProductStatusSchema = {
+  body: {
+    type: 'object',
+    required: ['isActive'],
+    properties: {
+      isActive: { type: 'boolean' },
+    },
+  },
+};

@@ -7,6 +7,7 @@ const mockProductService = {
   getProductById: jest.fn(),
   createProduct: jest.fn(),
   updateProduct: jest.fn(),
+  setProductActiveState: jest.fn(),
   deleteProduct: jest.fn(),
   updateStock: jest.fn(),
   getStockMovements: jest.fn(),
@@ -349,6 +350,44 @@ describe('Product Routes Integration Tests', () => {
 
       expect(response.status).toBe(400);
       expect(response.body.error).toBe('Bad Request');
+    });
+  });
+
+  // ============================
+  // PATCH /products/:id/status (admin-only)
+  // ============================
+  describe('PATCH /products/:id/status', () => {
+    it('should toggle product status for admin', async () => {
+      mockProductService.setProductActiveState.mockResolvedValueOnce({
+        id: 55,
+        name: 'Toggle Product',
+        isActive: false,
+      });
+
+      const response = await sendAdminRequest(app, {
+        method: 'PATCH',
+        url: '/products/55/status',
+        payload: { isActive: false },
+      });
+
+      expect(response.status).toBe(200);
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.isActive).toBe(false);
+      expect(mockProductService.setProductActiveState).toHaveBeenCalledWith(55, false);
+    });
+
+    it('should reject non-admin access', async () => {
+      const response = await sendRequest(app, {
+        method: 'PATCH',
+        url: '/products/55/status',
+        payload: { isActive: false },
+        headers: {
+          'x-user-id': '5',
+          'x-user-role': 'customer',
+        },
+      });
+
+      expect(response.status).toBe(403);
     });
   });
 });

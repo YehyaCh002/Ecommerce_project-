@@ -4,6 +4,7 @@ import { FastifyRequest, FastifyReply } from 'fastify';
 const resolveStatus = (message: string): number => {
   if (message.includes('not found') || message.includes('does not exist')) return 404;
   if (message.includes('already exists') || message.includes('duplicate')) return 409;
+  if (message.toLowerCase().includes('disabled')) return 409;
   if (message.includes('Insufficient stock')) return 422;
   if (message.includes('Invalid') || message.includes('required')) return 400;
   if (message.includes('Unauthorized') || message.includes('Authentication')) return 401;

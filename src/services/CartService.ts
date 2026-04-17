@@ -50,6 +50,10 @@ export class CartService {
       throw new Error('Product not found');
     }
 
+    if (product.isActive === false) {
+      throw new Error('Product is disabled');
+    }
+
     if (product.stock < quantity) {
       throw new Error('Insufficient stock');
     }
@@ -92,6 +96,10 @@ export class CartService {
 
     if (!cartItem) {
       throw new Error('Cart item not found');
+    }
+
+    if (cartItem.product.isActive === false) {
+      throw new Error('Product is disabled');
     }
 
     if (cartItem.product.stock < quantity) {

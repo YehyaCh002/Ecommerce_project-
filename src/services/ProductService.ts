@@ -11,6 +11,14 @@ export class ProductService {
   private stockMovementRepository = AppDataSource.getRepository(StockMovement);
   private categoryRepository = AppDataSource.getRepository(Category);
 
+  private isReactivationOnlyUpdate(data: Partial<Product>): boolean {
+    const keys = Object.keys(data).filter(
+      (key) => (data as any)[key] !== undefined
+    );
+
+    return keys.length === 1 && keys[0] === 'isActive' && data.isActive === true;
+  }
+
   private decorateProductWithMetrics(product: Product | null): Product | null {
     if (!product) return null;
 
@@ -313,6 +321,13 @@ export class ProductService {
     id: number,
     data: Partial<Product>
   ): Promise<Product | null> {
+    const existing = await this.productRepository.findOne({ where: { id } });
+    if (!existing) return null;
+
+    if (existing.isActive === false && !this.isReactivationOnlyUpdate(data)) {
+      throw new Error('Product is disabled. Reactivate it first to modify it.');
+    }
+
     if (data.subCategoryId) {
       const subCategory = await this.categoryRepository.findOne({
         where: { id: data.subCategoryId },
@@ -323,6 +338,15 @@ export class ProductService {
     }
 
     await this.productRepository.update(id, data);
+    const updated = await this.getProductById(id);
+    return this.decorateProductWithMetrics(updated);
+  }
+
+  async setProductActiveState(id: number, isActive: boolean): Promise<Product | null> {
+    const existing = await this.productRepository.findOne({ where: { id } });
+    if (!existing) return null;
+
+    await this.productRepository.update(id, { isActive });
     const updated = await this.getProductById(id);
     return this.decorateProductWithMetrics(updated);
   }
@@ -342,6 +366,10 @@ export class ProductService {
   ): Promise<Product | null> {
     const product = await this.getProductById(id);
     if (!product) return null;
+
+    if (product.isActive === false) {
+      throw new Error('Product is disabled. Reactivate it first to modify it.');
+    }
 
     const oldStock = Number(product.stock || 0);
     const variants = product.variants || [];

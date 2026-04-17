@@ -195,6 +195,10 @@ export class OrderService {
 
     // Validate stock availability
     for (const item of cart.cartItems) {
+      if (item.product.isActive === false) {
+        throw new Error(`Product is disabled: ${item.product.name}`);
+      }
+
       if (item.product.stock < item.quantity) {
         throw new Error(
           `Insufficient stock for product: ${item.product.name}`
@@ -325,6 +329,10 @@ export class OrderService {
     for (const item of items) {
       const product = await this.productService.getProductById(item.productId);
       if (!product) throw new Error(`Product not found: ${item.productId}`);
+
+      if (product.isActive === false) {
+        throw new Error(`Product is disabled: ${product.name}`);
+      }
 
       let variant = null;
       if (item.variantId) {

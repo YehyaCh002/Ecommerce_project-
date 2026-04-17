@@ -1,7 +1,11 @@
 import { FastifyInstance } from 'fastify';
 import { ProductController } from '../controllers/ProductController';
 import { authenticate, requireAdmin } from '../middlewares/auth';
-import { createProductSchema, updateProductSchema } from '../schemas/productSchema';
+import {
+  createProductSchema,
+  updateProductSchema,
+  updateProductStatusSchema,
+} from '../schemas/productSchema';
 
 export default async function productRoutes(fastify: FastifyInstance) {
   const productController = new ProductController();
@@ -63,5 +67,14 @@ export default async function productRoutes(fastify: FastifyInstance) {
     '/:id/stock',
     { preHandler: [authenticate, requireAdmin] },
     (request, reply) => productController.updateStock(request, reply)
+  );
+
+  fastify.patch(
+    '/:id/status',
+    {
+      preHandler: [authenticate, requireAdmin],
+      schema: updateProductStatusSchema,
+    },
+    (request, reply) => productController.updateProductStatus(request, reply)
   );
 }
