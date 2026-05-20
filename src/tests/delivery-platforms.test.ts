@@ -1,5 +1,5 @@
 import { FastifyInstance } from 'fastify';
-import { setupTest, teardownTest, sendAdminRequest, sendRequest } from './test-utils';
+import { setupTest, teardownTest, sendAdminRequest, sendRequest, sendAuthenticatedRequest } from './test-utils';
 
 const mockPlatformService = {
   getAllPlatforms: jest.fn(),
@@ -70,14 +70,12 @@ describe('Delivery Platforms & Order Timers Integration Tests', () => {
     });
 
     it('should return 403 when a non-admin tries to create a platform', async () => {
-      const response = await sendRequest(app, {
+      const response = await sendAuthenticatedRequest(app, {
         method: 'POST',
         url: '/delivery-platforms',
         payload: { name: 'Test' },
-        headers: { 
-          'x-user-id': '2',
-          'x-user-role': 'customer' 
-        }
+        userId: '2',
+        role: 'customer'
       });
 
       expect(response.status).toBe(403);

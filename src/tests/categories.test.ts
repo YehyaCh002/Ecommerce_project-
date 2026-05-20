@@ -1,5 +1,5 @@
 import { FastifyInstance } from 'fastify';
-import { setupTest, teardownTest, sendRequest, sendAdminRequest } from './test-utils';
+import { setupTest, teardownTest, sendRequest, sendAdminRequest, sendAuthenticatedRequest } from './test-utils';
 
 const mockCategoryService = {
   getAllCategories: jest.fn(),
@@ -77,14 +77,12 @@ describe('Category Routes Integration Tests', () => {
     });
 
     it('should return 403 for non-admin', async () => {
-      const response = await sendRequest(app, {
+      const response = await sendAuthenticatedRequest(app, {
         method: 'POST',
         url: '/categories',
         payload: validCategory,
-        headers: {
-          'x-user-id': '5',
-          'x-user-role': 'customer',
-        },
+        userId: '5',
+        role: 'customer',
       });
 
       expect(response.status).toBe(403);

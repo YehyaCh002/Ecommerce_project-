@@ -43,4 +43,23 @@ export default async function userRoutes(fastify: FastifyInstance) {
     { preHandler: [authenticate, requireAdmin] },
     (request, reply) => userController.deleteUser(request, reply)
   );
+
+  // Auth: Login
+  fastify.post(
+    '/login',
+    (request, reply) => userController.login(request, reply)
+  );
+
+  // Auth: Refresh Token
+  fastify.post(
+    '/refresh-token',
+    (request, reply) => userController.refreshToken(request, reply)
+  );
+
+  // Auth: Logout
+  fastify.post(
+    '/logout',
+    { preHandler: [authenticate] },
+    (request, reply) => userController.logout(request as any, reply)
+  );
 }

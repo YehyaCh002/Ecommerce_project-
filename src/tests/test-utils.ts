@@ -51,6 +51,10 @@ export async function sendRequest(
   };
 }
 
+import * as jwt from 'jsonwebtoken';
+
+const JWT_SECRET = process.env.JWT_SECRET || 'your_super_secret_jwt_key_here';
+
 export async function sendAuthenticatedRequest(
   app: FastifyInstance,
   options: {
@@ -64,12 +68,13 @@ export async function sendAuthenticatedRequest(
 ) {
   const { userId = '5', role = 'customer', ...rest } = options;
   
+  const token = jwt.sign({ id: Number(userId), role }, JWT_SECRET, { expiresIn: '1h' });
+
   return sendRequest(app, {
     ...rest,
     headers: {
       ...options.headers,
-      'x-user-id': userId,
-      'x-user-role': role,
+      authorization: `Bearer ${token}`,
     },
   });
 }

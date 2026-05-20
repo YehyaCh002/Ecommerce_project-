@@ -1,5 +1,5 @@
 import { FastifyInstance } from 'fastify';
-import { setupTest, teardownTest, sendRequest, sendAdminRequest } from './test-utils';
+import { setupTest, teardownTest, sendRequest, sendAdminRequest, sendAuthenticatedRequest } from './test-utils';
 
 // ─── Mock the entire ProductService to avoid TypeORM / DB dependency ──────────
 const mockProductService = {
@@ -146,13 +146,11 @@ describe('Product Routes Integration Tests', () => {
     });
 
     it('should return 403 for non-admin stock movements access', async () => {
-      const response = await sendRequest(app, {
+      const response = await sendAuthenticatedRequest(app, {
         method: 'GET',
         url: '/products/stock-movements',
-        headers: {
-          'x-user-id': '5',
-          'x-user-role': 'customer',
-        },
+        userId: '5',
+        role: 'customer',
       });
 
       expect(response.status).toBe(403);
@@ -294,24 +292,21 @@ describe('Product Routes Integration Tests', () => {
         url: '/products',
         payload: validProduct,
         headers: {
-          'x-user-id': 'not-a-valid-id',
-          'x-user-role': 'admin',
+          'authorization': 'Bearer not-a-valid-token',
         },
       });
 
-      expect(response.status).toBe(400);
-      expect(response.body.message).toMatch(/Invalid user ID format/);
+      expect(response.status).toBe(401);
+      expect(response.body.message).toMatch(/Invalid or expired token/);
     });
 
     it('should return 403 when a non-admin (customer) user calls the route', async () => {
-      const response = await sendRequest(app, {
+      const response = await sendAuthenticatedRequest(app, {
         method: 'POST',
         url: '/products',
         payload: validProduct,
-        headers: {
-          'x-user-id': '5',
-          'x-user-role': 'customer',
-        },
+        userId: '5',
+        role: 'customer',
       });
 
       expect(response.status).toBe(403);
@@ -377,14 +372,12 @@ describe('Product Routes Integration Tests', () => {
     });
 
     it('should reject non-admin access', async () => {
-      const response = await sendRequest(app, {
+      const response = await sendAuthenticatedRequest(app, {
         method: 'PATCH',
         url: '/products/55/status',
         payload: { isActive: false },
-        headers: {
-          'x-user-id': '5',
-          'x-user-role': 'customer',
-        },
+        userId: '5',
+        role: 'customer',
       });
 
       expect(response.status).toBe(403);

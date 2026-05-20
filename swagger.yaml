@@ -1,0 +1,1676 @@
+openapi: 3.0.3
+info:
+  title: Ecommerce Project API
+  version: 1.0.0
+  description: |
+    OpenAPI specification generated from Fastify route registrations and controller payload handling.
+
+    Authentication model used by this API:
+    - `x-user-id` header is required for authenticated routes.
+    - `x-user-role: admin` is required for admin-only routes.
+servers:
+  - url: http://localhost:3000
+    description: Local development
+
+tags:
+  - name: System
+  - name: Users
+  - name: Products
+  - name: Categories
+  - name: Cart
+  - name: Orders
+  - name: Delivery Platforms
+
+paths:
+  /:
+    get:
+      tags: [System]
+      summary: API status message
+      operationId: getRootStatus
+      responses:
+        '200':
+          description: Service is running
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  status:
+                    type: string
+
+  /health:
+    get:
+      tags: [System]
+      summary: Health check
+      operationId: getHealth
+      responses:
+        '200':
+          description: Service health status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  timestamp:
+                    type: string
+                    format: date-time
+
+  /users/:
+    get:
+      tags: [Users]
+      summary: List all users (admin)
+      operationId: getAllUsers
+      security:
+        - UserIdHeader: []
+          UserRoleHeader: []
+      responses:
+        '200':
+          $ref: '#/components/responses/ApiSuccess'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+    post:
+      tags: [Users]
+      summary: Create a user
+      operationId: createUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateUserRequest'
+      responses:
+        '201':
+          $ref: '#/components/responses/ApiSuccess'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /users/{id}:
+    parameters:
+      - $ref: '#/components/parameters/IdPath'
+    get:
+      tags: [Users]
+      summary: Get user by ID
+      operationId: getUserById
+      security:
+        - UserIdHeader: []
+      responses:
+        '200':
+          $ref: '#/components/responses/ApiSuccess'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      tags: [Users]
+      summary: Update user
+      operationId: updateUser
+      security:
+        - UserIdHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/ApiSuccess'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags: [Users]
+      summary: Delete user (admin)
+      operationId: deleteUser
+      security:
+        - UserIdHeader: []
+          UserRoleHeader: []
+      responses:
+        '200':
+          $ref: '#/components/responses/ApiSuccess'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /products/:
+    get:
+      tags: [Products]
+      summary: List products
+      operationId: getAllProducts
+      parameters:
+        - in: query
+          name: categoryId
+          schema: { type: integer }
+        - in: query
+          name: search
+          schema: { type: string }
+        - in: query
+          name: minPrice
+          schema: { type: number }
+        - in: query
+          name: maxPrice
+          schema: { type: number }
+        - in: query
+          name: isActive
+          schema: { type: boolean }
+      responses:
+        '200':
+          $ref: '#/components/responses/ApiSuccessWithCount'
+
+    post:
+      tags: [Products]
+      summary: Create product (admin)
+      operationId: createProduct
+      security:
+        - UserIdHeader: []
+          UserRoleHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateProductRequest'
+      responses:
+        '201':
+          $ref: '#/components/responses/ApiSuccess'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /products/addProd:
+    post:
+      tags: [Products]
+      summary: Legacy alias for create product (admin)
+      operationId: createProductLegacy
+      security:
+        - UserIdHeader: []
+          UserRoleHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateProductRequest'
+      responses:
+        '201':
+          $ref: '#/components/responses/ApiSuccess'
+
+  /products/stock-movements:
+    get:
+      tags: [Products]
+      summary: List stock movements (admin)
+      operationId: getStockMovements
+      security:
+        - UserIdHeader: []
+          UserRoleHeader: []
+      parameters:
+        - in: query
+          name: types
+          description: Comma-separated movement types
+          schema:
+            type: string
+            example: add,sale,adjustment
+        - in: query
+          name: startDate
+          schema: { type: string, format: date-time }
+        - in: query
+          name: endDate
+          schema: { type: string, format: date-time }
+        - in: query
+          name: categorySearch
+          schema: { type: string }
+      responses:
+        '200':
+          $ref: '#/components/responses/ApiSuccessWithCount'
+
+  /products/stock-movements/{id}:
+    parameters:
+      - $ref: '#/components/parameters/IdPath'
+    get:
+      tags: [Products]
+      summary: Get stock movement details (admin)
+      operationId: getStockMovementDetails
+      security:
+        - UserIdHeader: []
+          UserRoleHeader: []
+      responses:
+        '200':
+          $ref: '#/components/responses/ApiSuccess'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /products/{id}:
+    parameters:
+      - $ref: '#/components/parameters/IdPath'
+    get:
+      tags: [Products]
+      summary: Get product by ID
+      operationId: getProductById
+      responses:
+        '200':
+          $ref: '#/components/responses/ApiSuccess'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      tags: [Products]
+      summary: Update product (admin)
+      operationId: updateProduct
+      security:
+        - UserIdHeader: []
+          UserRoleHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProductRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/ApiSuccess'
+
+    delete:
+      tags: [Products]
+      summary: Delete product (admin)
+      operationId: deleteProduct
+      security:
+        - UserIdHeader: []
+          UserRoleHeader: []
+      responses:
+        '200':
+          $ref: '#/components/responses/ApiSuccess'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /products/{id}/stock:
+    parameters:
+      - $ref: '#/components/parameters/IdPath'
+    patch:
+      tags: [Products]
+      summary: Update product stock (admin)
+      operationId: updateProductStock
+      security:
+        - UserIdHeader: []
+          UserRoleHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateStockRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/ApiSuccess'
+
+  /products/{id}/status:
+    parameters:
+      - $ref: '#/components/parameters/IdPath'
+    patch:
+      tags: [Products]
+      summary: Update product active status (admin)
+      operationId: updateProductStatus
+      security:
+        - UserIdHeader: []
+          UserRoleHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProductStatusRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/ApiSuccess'
+
+  /categories/:
+    get:
+      tags: [Categories]
+      summary: List categories
+      operationId: getAllCategories
+      responses:
+        '200':
+          $ref: '#/components/responses/ApiSuccess'
+
+    post:
+      tags: [Categories]
+      summary: Create category (admin)
+      operationId: createCategory
+      security:
+        - UserIdHeader: []
+          UserRoleHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CategoryRequest'
+      responses:
+        '201':
+          $ref: '#/components/responses/ApiSuccess'
+
+  /categories/{id}:
+    parameters:
+      - $ref: '#/components/parameters/IdPath'
+    get:
+      tags: [Categories]
+      summary: Get category by ID
+      operationId: getCategoryById
+      responses:
+        '200':
+          $ref: '#/components/responses/ApiSuccess'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      tags: [Categories]
+      summary: Update category (admin)
+      operationId: updateCategory
+      security:
+        - UserIdHeader: []
+          UserRoleHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CategoryRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/ApiSuccess'
+
+    delete:
+      tags: [Categories]
+      summary: Delete category (admin)
+      operationId: deleteCategory
+      security:
+        - UserIdHeader: []
+          UserRoleHeader: []
+      responses:
+        '200':
+          $ref: '#/components/responses/ApiSuccess'
+
+  /cart/:
+    get:
+      tags: [Cart]
+      summary: Get authenticated user cart
+      operationId: getCart
+      security:
+        - UserIdHeader: []
+      responses:
+        '200':
+          $ref: '#/components/responses/ApiSuccess'
+
+    delete:
+      tags: [Cart]
+      summary: Clear authenticated user cart
+      operationId: clearCart
+      security:
+        - UserIdHeader: []
+      responses:
+        '200':
+          $ref: '#/components/responses/ApiSuccessMessage'
+
+  /cart/total:
+    get:
+      tags: [Cart]
+      summary: Get cart total
+      operationId: getCartTotal
+      security:
+        - UserIdHeader: []
+      responses:
+        '200':
+          $ref: '#/components/responses/ApiSuccess'
+
+  /cart/items:
+    post:
+      tags: [Cart]
+      summary: Add item to cart
+      operationId: addItemToCart
+      security:
+        - UserIdHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CartItemRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/ApiSuccess'
+
+  /cart/items/{itemId}:
+    parameters:
+      - in: path
+        name: itemId
+        required: true
+        schema:
+          type: integer
+    put:
+      tags: [Cart]
+      summary: Update cart item quantity
+      operationId: updateCartItem
+      security:
+        - UserIdHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [quantity]
+              properties:
+                quantity:
+                  type: integer
+                  minimum: 1
+      responses:
+        '200':
+          $ref: '#/components/responses/ApiSuccess'
+
+    delete:
+      tags: [Cart]
+      summary: Remove item from cart
+      operationId: removeItemFromCart
+      security:
+        - UserIdHeader: []
+      responses:
+        '200':
+          $ref: '#/components/responses/ApiSuccess'
+
+  /orders/test:
+    get:
+      tags: [Orders]
+      summary: Test order route
+      operationId: getOrdersTestRoute
+      responses:
+        '200':
+          description: Route check
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+
+  /orders/:
+    post:
+      tags: [Orders]
+      summary: Create order from authenticated user cart
+      operationId: createOrder
+      security:
+        - UserIdHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateOrderRequest'
+      responses:
+        '201':
+          $ref: '#/components/responses/ApiSuccess'
+
+    get:
+      tags: [Orders]
+      summary: List all orders (admin)
+      operationId: getAllOrders
+      security:
+        - UserIdHeader: []
+          UserRoleHeader: []
+      parameters:
+        - in: query
+          name: cancellationStatus
+          schema: { type: string }
+        - in: query
+          name: isPotentialDuplicate
+          schema: { type: boolean }
+      responses:
+        '200':
+          $ref: '#/components/responses/ApiSuccessWithCount'
+
+  /orders/quick-order:
+    post:
+      tags: [Orders]
+      summary: Create guest quick order
+      operationId: createQuickOrder
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QuickOrderRequest'
+      responses:
+        '201':
+          $ref: '#/components/responses/ApiSuccess'
+
+  /orders/my-orders:
+    get:
+      tags: [Orders]
+      summary: List authenticated user orders
+      operationId: getUserOrders
+      security:
+        - UserIdHeader: []
+      responses:
+        '200':
+          $ref: '#/components/responses/ApiSuccessWithCount'
+
+  /orders/reclamations:
+    get:
+      tags: [Orders]
+      summary: List reclamation orders (admin)
+      operationId: getReclamationOrders
+      security:
+        - UserIdHeader: []
+          UserRoleHeader: []
+      parameters:
+        - in: query
+          name: type
+          schema: { type: string }
+        - in: query
+          name: search
+          schema: { type: string }
+        - in: query
+          name: platformId
+          schema: { type: integer }
+        - in: query
+          name: wilayaId
+          schema: { type: integer }
+        - in: query
+          name: status
+          schema: { type: string }
+      responses:
+        '200':
+          $ref: '#/components/responses/ApiSuccessWithCountSummary'
+
+  /orders/vendor-returns/batches:
+    post:
+      tags: [Orders]
+      summary: Create vendor return batch (admin)
+      operationId: createVendorReturnBatch
+      security:
+        - UserIdHeader: []
+          UserRoleHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateVendorReturnBatchRequest'
+      responses:
+        '201':
+          $ref: '#/components/responses/ApiSuccess'
+
+  /orders/vendor-returns/batches/{id}:
+    parameters:
+      - $ref: '#/components/parameters/IdPath'
+    get:
+      tags: [Orders]
+      summary: Get vendor return batch summary (admin)
+      operationId: getVendorReturnBatchSummary
+      security:
+        - UserIdHeader: []
+          UserRoleHeader: []
+      responses:
+        '200':
+          $ref: '#/components/responses/ApiSuccess'
+
+  /orders/vendor-returns/batches/{id}/scan:
+    parameters:
+      - $ref: '#/components/parameters/IdPath'
+    post:
+      tags: [Orders]
+      summary: Scan parcel in vendor return batch (admin)
+      operationId: scanVendorReturnParcel
+      security:
+        - UserIdHeader: []
+          UserRoleHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [trackingNumber]
+              properties:
+                trackingNumber:
+                  type: string
+      responses:
+        '200':
+          $ref: '#/components/responses/ApiSuccess'
+
+  /orders/vendor-returns/batches/{id}/close:
+    parameters:
+      - $ref: '#/components/parameters/IdPath'
+    post:
+      tags: [Orders]
+      summary: Close vendor return batch (admin)
+      operationId: closeVendorReturnBatch
+      security:
+        - UserIdHeader: []
+          UserRoleHeader: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                note:
+                  type: string
+      responses:
+        '200':
+          $ref: '#/components/responses/ApiSuccess'
+
+  /orders/wilaya-tracking:
+    get:
+      tags: [Orders]
+      summary: List wilaya tracking orders (admin)
+      operationId: getWilayaTrackingOrders
+      security:
+        - UserIdHeader: []
+          UserRoleHeader: []
+      responses:
+        '200':
+          $ref: '#/components/responses/ApiSuccessWithCount'
+
+  /orders/stats/confirmation:
+    get:
+      tags: [Orders]
+      summary: Get confirmation stats (admin)
+      operationId: getConfirmationStats
+      security:
+        - UserIdHeader: []
+          UserRoleHeader: []
+      responses:
+        '200':
+          $ref: '#/components/responses/ApiSuccess'
+
+  /orders/stats/commandes:
+    get:
+      tags: [Orders]
+      summary: Get commandes statistics (admin)
+      operationId: getCommandesStatistics
+      security:
+        - UserIdHeader: []
+          UserRoleHeader: []
+      parameters:
+        - in: query
+          name: tab
+          schema: { type: string }
+        - in: query
+          name: startDate
+          schema: { type: string, format: date-time }
+        - in: query
+          name: endDate
+          schema: { type: string, format: date-time }
+        - in: query
+          name: assignedToId
+          schema: { type: integer }
+        - in: query
+          name: status
+          schema: { type: string }
+        - in: query
+          name: search
+          schema: { type: string }
+      responses:
+        '200':
+          $ref: '#/components/responses/ApiSuccess'
+
+  /orders/stats/retours:
+    get:
+      tags: [Orders]
+      summary: Get retours statistics (admin)
+      operationId: getRetoursStatistics
+      security:
+        - UserIdHeader: []
+          UserRoleHeader: []
+      parameters:
+        - in: query
+          name: startDate
+          schema: { type: string, format: date-time }
+        - in: query
+          name: endDate
+          schema: { type: string, format: date-time }
+        - in: query
+          name: assignedToId
+          schema: { type: integer }
+        - in: query
+          name: platformId
+          schema: { type: integer }
+        - in: query
+          name: wilayaId
+          schema: { type: integer }
+        - in: query
+          name: search
+          schema: { type: string }
+      responses:
+        '200':
+          $ref: '#/components/responses/ApiSuccess'
+
+  /orders/stats/echecs:
+    get:
+      tags: [Orders]
+      summary: Get echecs statistics (admin)
+      operationId: getEchecsStatistics
+      security:
+        - UserIdHeader: []
+          UserRoleHeader: []
+      parameters:
+        - in: query
+          name: startDate
+          schema: { type: string, format: date-time }
+        - in: query
+          name: endDate
+          schema: { type: string, format: date-time }
+        - in: query
+          name: assignedToId
+          schema: { type: integer }
+        - in: query
+          name: platformId
+          schema: { type: integer }
+        - in: query
+          name: wilayaId
+          schema: { type: integer }
+        - in: query
+          name: search
+          schema: { type: string }
+      responses:
+        '200':
+          $ref: '#/components/responses/ApiSuccess'
+
+  /orders/stats/vente-stock:
+    get:
+      tags: [Orders]
+      summary: Get vente stock statistics (admin)
+      operationId: getVenteStockStatistics
+      security:
+        - UserIdHeader: []
+          UserRoleHeader: []
+      parameters:
+        - in: query
+          name: statuses
+          description: Comma-separated order statuses
+          schema: { type: string }
+        - in: query
+          name: startDate
+          schema: { type: string, format: date-time }
+        - in: query
+          name: endDate
+          schema: { type: string, format: date-time }
+        - in: query
+          name: categorySearch
+          schema: { type: string }
+        - in: query
+          name: productSearch
+          schema: { type: string }
+      responses:
+        '200':
+          $ref: '#/components/responses/ApiSuccess'
+
+  /orders/{id}:
+    parameters:
+      - $ref: '#/components/parameters/IdPath'
+    get:
+      tags: [Orders]
+      summary: Get order by ID
+      operationId: getOrderById
+      responses:
+        '200':
+          $ref: '#/components/responses/ApiSuccess'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      tags: [Orders]
+      summary: Update order (admin, backward-compatible endpoint)
+      operationId: updateOrderLegacy
+      security:
+        - UserIdHeader: []
+          UserRoleHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateOrderRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/ApiSuccess'
+
+  /orders/{id}/update:
+    parameters:
+      - $ref: '#/components/parameters/IdPath'
+    put:
+      tags: [Orders]
+      summary: Update order (admin)
+      operationId: updateOrder
+      security:
+        - UserIdHeader: []
+          UserRoleHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateOrderRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/ApiSuccess'
+
+  /orders/{id}/status:
+    parameters:
+      - $ref: '#/components/parameters/IdPath'
+    patch:
+      tags: [Orders]
+      summary: Update order status (admin)
+      operationId: updateOrderStatus
+      security:
+        - UserIdHeader: []
+          UserRoleHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateOrderStatusRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/ApiSuccess'
+
+  /orders/{id}/platform:
+    parameters:
+      - $ref: '#/components/parameters/IdPath'
+    patch:
+      tags: [Orders]
+      summary: Assign delivery platform to order (admin)
+      operationId: updateOrderPlatform
+      security:
+        - UserIdHeader: []
+          UserRoleHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [platformId]
+              properties:
+                platformId:
+                  type: integer
+      responses:
+        '200':
+          $ref: '#/components/responses/ApiSuccess'
+
+  /orders/{id}/history:
+    parameters:
+      - $ref: '#/components/parameters/IdPath'
+    get:
+      tags: [Orders]
+      summary: Get order history
+      operationId: getOrderHistory
+      security:
+        - UserIdHeader: []
+      responses:
+        '200':
+          $ref: '#/components/responses/ApiSuccess'
+
+    post:
+      tags: [Orders]
+      summary: Log order action (admin)
+      operationId: logOrderAction
+      security:
+        - UserIdHeader: []
+          UserRoleHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [action]
+              properties:
+                action:
+                  type: string
+                  description: Order action enum from backend
+                details:
+                  type: string
+      responses:
+        '201':
+          $ref: '#/components/responses/ApiSuccess'
+
+  /orders/{id}/cancel:
+    parameters:
+      - $ref: '#/components/parameters/IdPath'
+    post:
+      tags: [Orders]
+      summary: Cancel order by user
+      operationId: cancelOrder
+      security:
+        - UserIdHeader: []
+      responses:
+        '200':
+          $ref: '#/components/responses/ApiSuccess'
+
+  /orders/{id}/cancel-request:
+    parameters:
+      - $ref: '#/components/parameters/IdPath'
+    post:
+      tags: [Orders]
+      summary: Request order cancellation
+      operationId: requestCancellation
+      security:
+        - UserIdHeader: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason:
+                  type: string
+      responses:
+        '200':
+          $ref: '#/components/responses/ApiSuccess'
+
+  /orders/{id}/cancel-confirm:
+    parameters:
+      - $ref: '#/components/parameters/IdPath'
+    post:
+      tags: [Orders]
+      summary: Confirm order cancellation (admin)
+      operationId: confirmCancellation
+      security:
+        - UserIdHeader: []
+          UserRoleHeader: []
+      responses:
+        '200':
+          $ref: '#/components/responses/ApiSuccess'
+
+  /orders/{id}/cancel-reject:
+    parameters:
+      - $ref: '#/components/parameters/IdPath'
+    post:
+      tags: [Orders]
+      summary: Reject order cancellation (admin)
+      operationId: rejectCancellation
+      security:
+        - UserIdHeader: []
+          UserRoleHeader: []
+      responses:
+        '200':
+          $ref: '#/components/responses/ApiSuccess'
+
+  /orders/{id}/exchange/request:
+    parameters:
+      - $ref: '#/components/parameters/IdPath'
+    post:
+      tags: [Orders]
+      summary: Request order exchange
+      operationId: requestExchange
+      security:
+        - UserIdHeader: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason:
+                  type: string
+      responses:
+        '200':
+          $ref: '#/components/responses/ApiSuccess'
+
+  /orders/{id}/exchange/approve:
+    parameters:
+      - $ref: '#/components/parameters/IdPath'
+    post:
+      tags: [Orders]
+      summary: Approve order exchange (admin)
+      operationId: approveExchange
+      security:
+        - UserIdHeader: []
+          UserRoleHeader: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                note:
+                  type: string
+      responses:
+        '200':
+          $ref: '#/components/responses/ApiSuccess'
+
+  /orders/{id}/exchange/reject:
+    parameters:
+      - $ref: '#/components/parameters/IdPath'
+    post:
+      tags: [Orders]
+      summary: Reject order exchange (admin)
+      operationId: rejectExchange
+      security:
+        - UserIdHeader: []
+          UserRoleHeader: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                note:
+                  type: string
+      responses:
+        '200':
+          $ref: '#/components/responses/ApiSuccess'
+
+  /orders/{id}/tracking-log:
+    parameters:
+      - $ref: '#/components/parameters/IdPath'
+    post:
+      tags: [Orders]
+      summary: Add tracking log entry (admin)
+      operationId: addTrackingLog
+      security:
+        - UserIdHeader: []
+          UserRoleHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddTrackingLogRequest'
+      responses:
+        '201':
+          $ref: '#/components/responses/ApiSuccess'
+
+  /delivery-platforms/:
+    get:
+      tags: [Delivery Platforms]
+      summary: List delivery platforms
+      operationId: getAllDeliveryPlatforms
+      security:
+        - UserIdHeader: []
+      responses:
+        '200':
+          $ref: '#/components/responses/ApiSuccess'
+
+    post:
+      tags: [Delivery Platforms]
+      summary: Create delivery platform (admin)
+      operationId: createDeliveryPlatform
+      security:
+        - UserIdHeader: []
+          UserRoleHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateDeliveryPlatformRequest'
+      responses:
+        '201':
+          $ref: '#/components/responses/ApiSuccess'
+
+  /delivery-platforms/{id}:
+    parameters:
+      - $ref: '#/components/parameters/IdPath'
+    patch:
+      tags: [Delivery Platforms]
+      summary: Update delivery platform (admin)
+      operationId: updateDeliveryPlatform
+      security:
+        - UserIdHeader: []
+          UserRoleHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateDeliveryPlatformRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/ApiSuccess'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+components:
+  securitySchemes:
+    UserIdHeader:
+      type: apiKey
+      in: header
+      name: x-user-id
+      description: Positive integer user ID
+    UserRoleHeader:
+      type: apiKey
+      in: header
+      name: x-user-role
+      description: Use value `admin` for admin-only endpoints
+
+  parameters:
+    IdPath:
+      in: path
+      name: id
+      required: true
+      schema:
+        type: integer
+
+  responses:
+    ApiSuccess:
+      description: Successful operation
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                example: true
+              data:
+                nullable: true
+              message:
+                type: string
+
+    ApiSuccessWithCount:
+      description: Successful operation with count
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                example: true
+              data:
+                type: array
+                items: {}
+              count:
+                type: integer
+
+    ApiSuccessWithCountSummary:
+      description: Successful operation with count and summary
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                example: true
+              data:
+                type: array
+                items: {}
+              count:
+                type: integer
+              summary:
+                type: object
+
+    ApiSuccessMessage:
+      description: Successful operation with message
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                example: true
+              message:
+                type: string
+
+    BadRequest:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    Unauthorized:
+      description: Authentication required
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    Forbidden:
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+  schemas:
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        message:
+          type: string
+        error:
+          type: string
+
+    CreateUserRequest:
+      type: object
+      required: [name, email, password]
+      properties:
+        name:
+          type: string
+          minLength: 1
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 6
+        role:
+          type: string
+          enum: [customer, admin]
+        avatar:
+          type: string
+
+    UpdateUserRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 6
+        role:
+          type: string
+          enum: [customer, admin]
+        avatar:
+          type: string
+
+    ProductVariantRequest:
+      type: object
+      properties:
+        size:
+          type: string
+        color:
+          type: string
+        stock:
+          type: number
+          minimum: 0
+        priceOverride:
+          type: number
+          minimum: 0
+        sku:
+          type: string
+        imageUrl:
+          type: string
+
+    CreateProductRequest:
+      type: object
+      required: [name, price, stock]
+      properties:
+        name:
+          type: string
+          minLength: 1
+        price:
+          type: number
+          minimum: 0
+        costPrice:
+          type: number
+          minimum: 0
+        stock:
+          type: number
+          minimum: 0
+        description:
+          type: string
+        imageUrl:
+          type: string
+        sku:
+          type: string
+        categoryId:
+          type: number
+        subCategoryId:
+          type: number
+        isLandingPageProduct:
+          type: boolean
+        deductStockOnConfirmation:
+          type: boolean
+        variants:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProductVariantRequest'
+
+    UpdateProductRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+        price:
+          type: number
+          minimum: 0
+        costPrice:
+          type: number
+          minimum: 0
+        stock:
+          type: number
+          minimum: 0
+        description:
+          type: string
+        imageUrl:
+          type: string
+        sku:
+          type: string
+        categoryId:
+          type: number
+        subCategoryId:
+          type: number
+        isLandingPageProduct:
+          type: boolean
+        deductStockOnConfirmation:
+          type: boolean
+
+    UpdateStockRequest:
+      type: object
+      required: [quantity]
+      properties:
+        quantity:
+          type: number
+        type:
+          type: string
+        variantUpdates:
+          type: array
+          items:
+            type: object
+            required: [variantId, newStock]
+            properties:
+              variantId:
+                type: integer
+              newStock:
+                type: integer
+
+    UpdateProductStatusRequest:
+      type: object
+      required: [isActive]
+      properties:
+        isActive:
+          type: boolean
+
+    CategoryRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 1
+        description:
+          type: string
+        slug:
+          type: string
+        parentCategoryId:
+          type: number
+
+    CartItemRequest:
+      type: object
+      required: [productId, quantity]
+      properties:
+        productId:
+          type: number
+        quantity:
+          type: number
+          minimum: 1
+
+    CreateOrderItemRequest:
+      type: object
+      required: [productId, quantity]
+      properties:
+        productId:
+          type: number
+        quantity:
+          type: number
+          minimum: 1
+        variantId:
+          type: number
+
+    CreateOrderRequest:
+      type: object
+      required: [shippingAddress, paymentMethod]
+      properties:
+        shippingAddress:
+          type: string
+          minLength: 1
+        paymentMethod:
+          type: string
+          minLength: 1
+        notes:
+          type: string
+        remark:
+          type: string
+        internalComment:
+          type: string
+        shippingFee:
+          type: number
+        isExchange:
+          type: boolean
+        exchangePrice:
+          type: number
+        productToCollect:
+          type: string
+        isFreeShipping:
+          type: boolean
+        hasInsurance:
+          type: boolean
+        customerEmail:
+          type: string
+          format: email
+        detailedAddress:
+          type: string
+        deliveryType:
+          type: string
+          enum: [Domicile, Bureau, Yalidine Desk, Stop Desk]
+        soldFromStore:
+          type: boolean
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/CreateOrderItemRequest'
+
+    QuickOrderCustomerInfo:
+      type: object
+      required: [name, phoneNumber]
+      properties:
+        name:
+          type: string
+        phoneNumber:
+          type: string
+        email:
+          type: string
+          format: email
+        address:
+          type: string
+        deliveryType:
+          type: string
+          enum: [Domicile, Bureau, Yalidine Desk, Stop Desk]
+        soldFromStore:
+          type: boolean
+
+    QuickOrderRequest:
+      type: object
+      required: [customerInfo, items]
+      properties:
+        customerInfo:
+          $ref: '#/components/schemas/QuickOrderCustomerInfo'
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/CreateOrderItemRequest'
+        paymentMethod:
+          type: string
+        notes:
+          type: string
+        remark:
+          type: string
+        internalComment:
+          type: string
+        shippingFee:
+          type: number
+        deliveryType:
+          type: string
+          enum: [Domicile, Bureau, Yalidine Desk, Stop Desk]
+        soldFromStore:
+          type: boolean
+
+    UpdateOrderData:
+      type: object
+      properties:
+        customerName:
+          type: string
+        phoneNumber:
+          type: string
+        shippingAddress:
+          type: string
+        paymentMethod:
+          type: string
+        status:
+          type: string
+        notes:
+          type: string
+        remark:
+          type: string
+        internalComment:
+          type: string
+        shippingFee:
+          type: number
+        isExchange:
+          type: boolean
+        exchangePrice:
+          type: number
+        productToCollect:
+          type: string
+        isFreeShipping:
+          type: boolean
+        hasInsurance:
+          type: boolean
+        wilayaId:
+          type: number
+        deliveryPlatformId:
+          type: number
+        assignedToId:
+          type: number
+        customerEmail:
+          type: string
+          format: email
+        detailedAddress:
+          type: string
+        deliveryType:
+          type: string
+          enum: [Domicile, Bureau, Yalidine Desk, Stop Desk]
+        soldFromStore:
+          type: boolean
+        isValidated:
+          type: boolean
+        validationOutcome:
+          type: string
+          enum: [received, returned, exchanged, refused, unreachable, other]
+
+    UpdateOrderRequest:
+      type: object
+      properties:
+        updateData:
+          $ref: '#/components/schemas/UpdateOrderData'
+        note:
+          type: string
+
+    UpdateOrderStatusRequest:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          description: Must be a valid backend OrderStatus value
+        note:
+          type: string
+
+    CreateVendorReturnBatchRequest:
+      type: object
+      properties:
+        dischargeReference:
+          type: string
+        trackingNumbers:
+          type: array
+          items:
+            type: string
+        deliveryPlatformId:
+          type: integer
+        notes:
+          type: string
+
+    AddTrackingLogRequest:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+        subStatus:
+          type: string
+        description:
+          type: string
+        location:
+          type: string
+        actor:
+          type: string
+
+    CreateDeliveryPlatformRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+        isActive:
+          type: boolean
+        defaultPreparationMinutes:
+          type: integer
+        metadata:
+          type: object
+          additionalProperties: true
+
+    UpdateDeliveryPlatformRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        isActive:
+          type: boolean
+        defaultPreparationMinutes:
+          type: integer
+        metadata:
+          type: object
+          additionalProperties: true

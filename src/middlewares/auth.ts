@@ -1,38 +1,41 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
+import * as jwt from 'jsonwebtoken';
+
+const JWT_SECRET = process.env.JWT_SECRET || 'your_super_secret_jwt_key_here';
 
 type AuthRequest = FastifyRequest & {
   userId?: number;
   userRole?: string;
 };
 
-// Simple authentication middleware for MVP
-// In production, use JWT or other proper authentication
+// JWT Authentication middleware
 export const authenticate = async (
   req: AuthRequest,
   res: FastifyReply
 ): Promise<void> => {
-  const userId = req.headers['x-user-id'] as string;
-  const userRole = req.headers['x-user-role'] as string;
+  const authHeader = req.headers.authorization;
 
-  if (!userId) {
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
     res.status(401).send({
       success: false,
-      message: 'Authentication required',
+      message: 'Authentication required. Missing Bearer token.',
     });
     return;
   }
 
-  const parsedUserId = Number.parseInt(userId, 10);
-  if (!Number.isInteger(parsedUserId) || parsedUserId <= 0) {
-    res.status(400).send({
+  const token = authHeader.split(' ')[1];
+
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET) as { id: number; role: string };
+    req.userId = decoded.id;
+    req.userRole = decoded.role;
+  } catch (error) {
+    res.status(401).send({
       success: false,
-      message: 'Invalid user ID format. Must be a positive integer.',
+      message: 'Invalid or expired token',
     });
     return;
   }
-
-  req.userId = parsedUserId;
-  req.userRole = userRole || 'customer';
 };
 
 export const requireAdmin = async (

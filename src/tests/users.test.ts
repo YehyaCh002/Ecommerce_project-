@@ -1,5 +1,5 @@
 import { FastifyInstance } from 'fastify';
-import { setupTest, teardownTest, sendRequest, sendAdminRequest } from './test-utils';
+import { setupTest, teardownTest, sendRequest, sendAdminRequest, sendAuthenticatedRequest } from './test-utils';
 
 const mockUserService = {
   getAllUsers: jest.fn(),
@@ -59,13 +59,11 @@ describe('User Routes Integration Tests', () => {
     });
 
     it('should return 403 for non-admin users', async () => {
-      const response = await sendRequest(app, {
+      const response = await sendAuthenticatedRequest(app, {
         method: 'GET',
         url: '/users',
-        headers: {
-          'x-user-id': '5',
-          'x-user-role': 'customer',
-        },
+        userId: '5',
+        role: 'customer',
       });
 
       expect(response.status).toBe(403);

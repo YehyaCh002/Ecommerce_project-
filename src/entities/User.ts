@@ -29,6 +29,9 @@ export class User {
   @Column({ type: 'varchar', length: 500, nullable: true })
   avatar: string;
 
+  @Column({ type: 'text', nullable: true })
+  refreshToken: string | null;
+
   @OneToMany(() => Order, (order) => order.assignedTo)
   assignedOrders: Order[];
 
