@@ -35,13 +35,32 @@ export class ConvertUserIdToUuid1777000000000 implements MigrationInterface {
       );
     `);
 
-    // 4) Copy users data using mapping
+    // 4) Copy users data using mapping — handle optional columns (e.g. refreshToken) safely
     await queryRunner.query(`
-      INSERT INTO users_new (id, name, email, password, role, avatar, "refreshToken", "createdAt", "updatedAt")
-      SELECT m.new_uuid, u.name, u.email, u.password, u.role, u.avatar, u."refreshToken", u."createdAt", u."updatedAt"
-      FROM users u
-      JOIN user_uuid_map m ON u.id::bigint = m.old_id
-      ORDER BY m.old_id;
+      DO $$
+      BEGIN
+        IF EXISTS (
+          SELECT 1 FROM information_schema.columns
+          WHERE table_name = 'users' AND column_name = 'refreshToken'
+        ) THEN
+          EXECUTE $sql$
+            INSERT INTO users_new (id, name, email, password, role, avatar, "refreshToken", "createdAt", "updatedAt")
+            SELECT m.new_uuid, u.name, u.email, u.password, u.role, u.avatar, u."refreshToken", u."createdAt", u."updatedAt"
+            FROM users u
+            JOIN user_uuid_map m ON u.id::bigint = m.old_id
+            ORDER BY m.old_id;
+          $sql$;
+        ELSE
+          EXECUTE $sql$
+            INSERT INTO users_new (id, name, email, password, role, avatar, "createdAt", "updatedAt")
+            SELECT m.new_uuid, u.name, u.email, u.password, u.role, u.avatar, u."createdAt", u."updatedAt"
+            FROM users u
+            JOIN user_uuid_map m ON u.id::bigint = m.old_id
+            ORDER BY m.old_id;
+          $sql$;
+        END IF;
+      END
+      $$;
     `);
 
     // 5) Update referencing tables: add temporary uuid columns and populate
