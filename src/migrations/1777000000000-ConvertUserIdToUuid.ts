@@ -168,20 +168,54 @@ export class ConvertUserIdToUuid1777000000000 implements MigrationInterface {
     await queryRunner.query(`ALTER TABLE order_history ADD CONSTRAINT "FK_order_history_changedByUser" FOREIGN KEY ("changedByUserId") REFERENCES users_new(id) ON DELETE SET NULL;`);
 
     // vendor_return_batches
-    await queryRunner.query(`ALTER TABLE vendor_return_batches DROP CONSTRAINT IF EXISTS "FK_vendor_return_batches_createdBy";`);
-    await queryRunner.query(`ALTER TABLE vendor_return_batches DROP CONSTRAINT IF EXISTS "FK_vendor_return_batches_closedBy";`);
-    await queryRunner.query(`ALTER TABLE vendor_return_batches DROP COLUMN "createdByUserId";`);
-    await queryRunner.query(`ALTER TABLE vendor_return_batches DROP COLUMN "closedByUserId";`);
-    await queryRunner.query(`ALTER TABLE vendor_return_batches RENAME COLUMN "createdByUserId_uuid" TO "createdByUserId";`);
-    await queryRunner.query(`ALTER TABLE vendor_return_batches RENAME COLUMN "closedByUserId_uuid" TO "closedByUserId";`);
-    await queryRunner.query(`ALTER TABLE vendor_return_batches ADD CONSTRAINT "FK_vendor_return_batches_createdBy" FOREIGN KEY ("createdByUserId") REFERENCES users_new(id) ON DELETE SET NULL;`);
-    await queryRunner.query(`ALTER TABLE vendor_return_batches ADD CONSTRAINT "FK_vendor_return_batches_closedBy" FOREIGN KEY ("closedByUserId") REFERENCES users_new(id) ON DELETE SET NULL;`);
+    await queryRunner.query(`
+      DO $$
+      BEGIN
+        IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'vendor_return_batches') THEN
+          IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'vendor_return_batches' AND column_name = 'createdByUserId') THEN
+            EXECUTE $sql$ ALTER TABLE vendor_return_batches DROP CONSTRAINT IF EXISTS "FK_vendor_return_batches_createdBy"; $sql$;
+            EXECUTE $sql$ ALTER TABLE vendor_return_batches DROP COLUMN IF EXISTS "createdByUserId"; $sql$;
+          END IF;
+          IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'vendor_return_batches' AND column_name = 'closedByUserId') THEN
+            EXECUTE $sql$ ALTER TABLE vendor_return_batches DROP CONSTRAINT IF EXISTS "FK_vendor_return_batches_closedBy"; $sql$;
+            EXECUTE $sql$ ALTER TABLE vendor_return_batches DROP COLUMN IF EXISTS "closedByUserId"; $sql$;
+          END IF;
+          IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'vendor_return_batches' AND column_name = 'createdByUserId_uuid') THEN
+            EXECUTE $sql$ ALTER TABLE vendor_return_batches RENAME COLUMN "createdByUserId_uuid" TO "createdByUserId"; $sql$;
+          END IF;
+          IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'vendor_return_batches' AND column_name = 'closedByUserId_uuid') THEN
+            EXECUTE $sql$ ALTER TABLE vendor_return_batches RENAME COLUMN "closedByUserId_uuid" TO "closedByUserId"; $sql$;
+          END IF;
+          IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'vendor_return_batches' AND column_name = 'createdByUserId') THEN
+            EXECUTE $sql$ ALTER TABLE vendor_return_batches ADD CONSTRAINT "FK_vendor_return_batches_createdBy" FOREIGN KEY ("createdByUserId") REFERENCES users_new(id) ON DELETE SET NULL; $sql$;
+          END IF;
+          IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'vendor_return_batches' AND column_name = 'closedByUserId') THEN
+            EXECUTE $sql$ ALTER TABLE vendor_return_batches ADD CONSTRAINT "FK_vendor_return_batches_closedBy" FOREIGN KEY ("closedByUserId") REFERENCES users_new(id) ON DELETE SET NULL; $sql$;
+          END IF;
+        END IF;
+      END
+      $$;
+    `);
 
     // vendor_return_scans
-    await queryRunner.query(`ALTER TABLE vendor_return_scans DROP CONSTRAINT IF EXISTS "FK_vendor_return_scans_scannedBy";`);
-    await queryRunner.query(`ALTER TABLE vendor_return_scans DROP COLUMN "scannedByUserId";`);
-    await queryRunner.query(`ALTER TABLE vendor_return_scans RENAME COLUMN "scannedByUserId_uuid" TO "scannedByUserId";`);
-    await queryRunner.query(`ALTER TABLE vendor_return_scans ADD CONSTRAINT "FK_vendor_return_scans_scannedBy" FOREIGN KEY ("scannedByUserId") REFERENCES users_new(id) ON DELETE SET NULL;`);
+    await queryRunner.query(`
+      DO $$
+      BEGIN
+        IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'vendor_return_scans') THEN
+          IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'vendor_return_scans' AND column_name = 'scannedByUserId') THEN
+            EXECUTE $sql$ ALTER TABLE vendor_return_scans DROP CONSTRAINT IF EXISTS "FK_vendor_return_scans_scannedBy"; $sql$;
+            EXECUTE $sql$ ALTER TABLE vendor_return_scans DROP COLUMN IF EXISTS "scannedByUserId"; $sql$;
+          END IF;
+          IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'vendor_return_scans' AND column_name = 'scannedByUserId_uuid') THEN
+            EXECUTE $sql$ ALTER TABLE vendor_return_scans RENAME COLUMN "scannedByUserId_uuid" TO "scannedByUserId"; $sql$;
+          END IF;
+          IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'vendor_return_scans' AND column_name = 'scannedByUserId') THEN
+            EXECUTE $sql$ ALTER TABLE vendor_return_scans ADD CONSTRAINT "FK_vendor_return_scans_scannedBy" FOREIGN KEY ("scannedByUserId") REFERENCES users_new(id) ON DELETE SET NULL; $sql$;
+          END IF;
+        END IF;
+      END
+      $$;
+    `);
 
     // 7) Replace users table (only if source/target exist)
     await queryRunner.query(`
