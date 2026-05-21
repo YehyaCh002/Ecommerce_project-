@@ -58,15 +58,15 @@ export class VendorReturnBatch {
   @JoinColumn({ name: 'createdByUserId' })
   createdByUser: User;
 
-  @Column({ type: 'int', nullable: true })
-  createdByUserId: number;
+  @Column({ type: 'uuid', nullable: true })
+  createdByUserId: string | null;
 
   @ManyToOne(() => User, { nullable: true, onDelete: 'SET NULL' })
   @JoinColumn({ name: 'closedByUserId' })
   closedByUser: User;
 
-  @Column({ type: 'int', nullable: true })
-  closedByUserId: number;
+  @Column({ type: 'uuid', nullable: true })
+  closedByUserId: string | null;
 
   @OneToMany(() => VendorReturnScan, (scan) => scan.batch, { cascade: true })
   scans: VendorReturnScan[];

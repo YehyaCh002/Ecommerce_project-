@@ -23,8 +23,8 @@ export class Cart {
   @JoinColumn({ name: 'userId' })
   user: User;
 
-  @Column({ type: 'int' })
-  userId: number;
+  @Column({ type: 'uuid' })
+  userId: string;
 
   @OneToMany(() => CartItem, (cartItem) => cartItem.cart, {
     cascade: true,

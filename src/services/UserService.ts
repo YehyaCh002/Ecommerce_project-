@@ -20,7 +20,7 @@ export class UserService {
     return await this.userRepository.find();
   }
 
-  async getUserById(id: number): Promise<User | null> {
+  async getUserById(id: string): Promise<User | null> {
     return await this.userRepository.findOne({ where: { id } });
   }
 
@@ -33,13 +33,13 @@ export class UserService {
     return await this.userRepository.save(user);
   }
 
-  async updateUser(id: number, userData: Partial<User>): Promise<User | null> {
-    await this.userRepository.update(id, userData);
+  async updateUser(id: string, userData: Partial<User>): Promise<User | null> {
+    await this.userRepository.update(id, userData as any);
     return await this.getUserById(id);
   }
 
-  async deleteUser(id: number): Promise<boolean> {
-    const result = await this.userRepository.delete(id);
+  async deleteUser(id: string): Promise<boolean> {
+    const result = await this.userRepository.delete(id as any);
     return result.affected !== 0;
   }
 
@@ -55,7 +55,7 @@ export class UserService {
 
   async refreshTokens(refreshToken: string): Promise<{ accessToken: string, refreshToken: string } | null> {
     try {
-      const decoded = jwt.verify(refreshToken, JWT_REFRESH_SECRET) as { id: number };
+      const decoded = jwt.verify(refreshToken, JWT_REFRESH_SECRET) as { id: string };
       const user = await this.getUserById(decoded.id);
 
       if (!user || user.refreshToken !== refreshToken) {
@@ -69,7 +69,7 @@ export class UserService {
     }
   }
 
-  async logout(userId: number): Promise<boolean> {
+  async logout(userId: string): Promise<boolean> {
     const user = await this.getUserById(userId);
     if (user) {
       user.refreshToken = null;

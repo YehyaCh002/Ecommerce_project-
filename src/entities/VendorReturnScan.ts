@@ -42,8 +42,8 @@ export class VendorReturnScan {
   @JoinColumn({ name: 'scannedByUserId' })
   scannedByUser: User;
 
-  @Column({ type: 'int', nullable: true })
-  scannedByUserId: number;
+  @Column({ type: 'uuid', nullable: true })
+  scannedByUserId: string | null;
 
   @CreateDateColumn()
   scannedAt: Date;

@@ -36,6 +36,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@fastify/cookie": "^8.3.0",
     "@fastify/cors": "^8.5.0",
     "bcrypt": "^6.0.0",
     "dotenv": "^16.3.1",

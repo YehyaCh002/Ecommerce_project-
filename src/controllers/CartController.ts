@@ -2,7 +2,7 @@ import { FastifyRequest, FastifyReply } from 'fastify';
 import { CartService } from '../services/CartService';
 
 type AuthRequest = FastifyRequest & {
-  userId?: number;
+  userId?: string;
 };
 
 export class CartController {
@@ -14,7 +14,7 @@ export class CartController {
   ): Promise<void> => {
     try {
       const body = (req.body as any) || {};
-      const userId = req.userId || (body.userId ? parseInt(body.userId, 10) : undefined);
+      const userId = req.userId || (body.userId ? String(body.userId) : undefined);
       if (!userId) {
         res.status(401).send({
           success: false,
@@ -39,7 +39,7 @@ export class CartController {
   ): Promise<void> => {
     try {
       const body = (req.body as any) || {};
-      const userId = req.userId || (body.userId ? parseInt(body.userId, 10) : undefined);
+      const userId = req.userId || (body.userId ? String(body.userId) : undefined);
       if (!userId) {
         res.status(401).send({
           success: false,
@@ -77,7 +77,7 @@ export class CartController {
   ): Promise<void> => {
     try {
       const body = (req.body as any) || {};
-      const userId = req.userId || (body.userId ? parseInt(body.userId, 10) : undefined);
+      const userId = req.userId || (body.userId ? String(body.userId) : undefined);
       if (!userId) {
         res.status(401).send({
           success: false,
@@ -108,7 +108,7 @@ export class CartController {
   ): Promise<void> => {
     try {
       const body = (req.body as any) || {};
-      const userId = req.userId || (body.userId ? parseInt(body.userId, 10) : undefined);
+      const userId = req.userId || (body.userId ? String(body.userId) : undefined);
       if (!userId) {
         res.status(401).send({
           success: false,
@@ -137,7 +137,7 @@ export class CartController {
   ): Promise<void> => {
     try {
       const body = (req.body as any) || {};
-      const userId = req.userId || (body.userId ? parseInt(body.userId, 10) : undefined);
+      const userId = req.userId || (body.userId ? String(body.userId) : undefined);
       if (!userId) {
         res.status(401).send({
           success: false,
@@ -162,7 +162,7 @@ export class CartController {
   ): Promise<void> => {
     try {
       const body = (req.body as any) || {};
-      const userId = req.userId || (body.userId ? parseInt(body.userId, 10) : undefined);
+      const userId = req.userId || (body.userId ? String(body.userId) : undefined);
       if (!userId) {
         res.status(401).send({
           success: false,

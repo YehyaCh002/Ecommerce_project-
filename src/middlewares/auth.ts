@@ -4,7 +4,7 @@ import * as jwt from 'jsonwebtoken';
 const JWT_SECRET = process.env.JWT_SECRET || 'your_super_secret_jwt_key_here';
 
 type AuthRequest = FastifyRequest & {
-  userId?: number;
+  userId?: string;
   userRole?: string;
 };
 
@@ -13,20 +13,26 @@ export const authenticate = async (
   req: AuthRequest,
   res: FastifyReply
 ): Promise<void> => {
-  const authHeader = req.headers.authorization;
+  // Check for token in cookies first, fallback to Authorization header
+  let token = req.cookies?.accessToken;
 
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+  if (!token) {
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      token = authHeader.split(' ')[1];
+    }
+  }
+
+  if (!token) {
     res.status(401).send({
       success: false,
-      message: 'Authentication required. Missing Bearer token.',
+      message: 'Authentication required. Missing token.',
     });
     return;
   }
 
-  const token = authHeader.split(' ')[1];
-
   try {
-    const decoded = jwt.verify(token, JWT_SECRET) as { id: number; role: string };
+    const decoded = jwt.verify(token, JWT_SECRET) as { id: string; role: string };
     req.userId = decoded.id;
     req.userRole = decoded.role;
   } catch (error) {

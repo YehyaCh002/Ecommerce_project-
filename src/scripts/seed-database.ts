@@ -5,6 +5,8 @@ import { ProductVariant } from '../entities/ProductVariant';
 import { Wilaya } from '../entities/Wilaya';
 import { DeliveryPlatform } from '../entities/DeliveryPlatform';
 import { User } from '../entities/User';
+import * as bcrypt from 'bcrypt';
+
 
 type CategorySeed = {
   name: string;
@@ -312,11 +314,15 @@ async function seedUsers(): Promise<void> {
 
   for (const seed of usersSeed) {
     let user = await userRepo.findOne({ where: { email: seed.email } });
+    const hashedPassword = await bcrypt.hash(seed.password, 10);
     if (!user) {
-      user = userRepo.create(seed);
+      user = userRepo.create({
+        ...seed,
+        password: hashedPassword,
+      });
     } else {
       user.name = seed.name;
-      user.password = seed.password;
+      user.password = hashedPassword;
       user.role = seed.role;
     }
 

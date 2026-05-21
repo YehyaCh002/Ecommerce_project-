@@ -176,7 +176,7 @@ describe('Order Cancellation Integration', () => {
       mockOrderHistoryRepository.find.mockReturnValue(Promise.resolve([]));
       mockOrderRepository.save.mockImplementationOnce(async (o) => o);
 
-      await orderService.requestCancellation(1, 'No longer needed', 99);
+      await orderService.requestCancellation(1, 'No longer needed', '99');
 
       expect(mockOrderRepository.save).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -212,7 +212,7 @@ describe('Order Cancellation Integration', () => {
       mockProductService.getProductById.mockReturnValueOnce(Promise.resolve({ id: 10, stock: 5 }));
       mockProductService.updateStock.mockReturnValueOnce(Promise.resolve({}));
 
-      await orderService.confirmCancellation(1, 1);
+      await orderService.confirmCancellation(1, '1');
 
       expect(mockProductService.updateStock).toHaveBeenCalledWith(10, 7);
       expect(mockOrderRepository.save).toHaveBeenCalledWith(
@@ -235,7 +235,7 @@ describe('Order Cancellation Integration', () => {
       mockOrderHistoryRepository.find.mockReturnValue(Promise.resolve([]));
       mockOrderRepository.save.mockImplementationOnce(async (o) => o);
 
-      await orderService.rejectCancellation(1, 1);
+      await orderService.rejectCancellation(1, '1');
 
       expect(mockOrderRepository.save).toHaveBeenCalledWith(
         expect.objectContaining({

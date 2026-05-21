@@ -70,8 +70,8 @@ export class OrderHistory {
   @JoinColumn({ name: 'changedByUserId' })
   changedByUser: User;
 
-  @Column({ type: 'int', nullable: true })
-  changedByUserId: number;
+  @Column({ type: 'uuid', nullable: true })
+  changedByUserId: string | null;
 
   @CreateDateColumn()
   timestamp: Date;

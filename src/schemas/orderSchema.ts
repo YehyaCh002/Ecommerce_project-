@@ -97,7 +97,7 @@ export const updateOrderSchema = {
           hasInsurance: { type: 'boolean' },
           wilayaId: { type: 'number' },
           deliveryPlatformId: { type: 'number' },
-          assignedToId: { type: 'number' },
+          assignedToId: { type: 'string' },
           customerEmail: { type: 'string', format: 'email' },
           detailedAddress: { type: 'string' },
           deliveryType: { type: 'string', enum: ['Domicile', 'Bureau', 'Yalidine Desk', 'Stop Desk'] },

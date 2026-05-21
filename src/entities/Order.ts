@@ -178,8 +178,8 @@ export class Order {
   @JoinColumn({ name: 'assignedToId' })
   assignedTo: User;
 
-  @Column({ type: 'int', nullable: true })
-  assignedToId: number;
+  @Column({ type: 'uuid', nullable: true })
+  assignedToId: string | null;
 
   // Customer Link
   @ManyToOne(() => Customer, (customer) => customer.orders, { nullable: true })
@@ -190,8 +190,8 @@ export class Order {
   customerId: number;
 
   // For backward compatibility (Optional, can be removed once refactored)
-  @Column({ type: 'int', nullable: true })
-  userId: number;
+  @Column({ type: 'uuid', nullable: true })
+  userId: string | null;
 
   // Additional Fields
   @Column({ type: 'varchar', length: 500, nullable: true })

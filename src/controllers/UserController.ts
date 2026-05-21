@@ -27,7 +27,7 @@ export class UserController {
   async getUserById(req: FastifyRequest, res: FastifyReply): Promise<void> {
     try {
       const { id } = req.params as { id: string };
-      const user = await this.userService.getUserById(parseInt(id, 10));
+      const user = await this.userService.getUserById(id);
 
       if (!user) {
         res.status(404).send({
@@ -72,7 +72,7 @@ export class UserController {
     try {
       const { id } = req.params as { id: string };
       const userData = req.body as any;
-      const user = await this.userService.updateUser(parseInt(id, 10), userData);
+      const user = await this.userService.updateUser(id, userData);
 
       if (!user) {
         res.status(404).send({
@@ -98,7 +98,7 @@ export class UserController {
   async deleteUser(req: FastifyRequest, res: FastifyReply): Promise<void> {
     try {
       const { id } = req.params as { id: string };
-      const success = await this.userService.deleteUser(parseInt(id, 10));
+      const success = await this.userService.deleteUser(id);
 
       if (!success) {
         res.status(404).send({
@@ -139,12 +139,26 @@ export class UserController {
       // remove sensitive data like password
       const { password: _, refreshToken: __, ...safeUser } = user;
 
+      res.setCookie('accessToken', accessToken, {
+        path: '/',
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 15 * 60, // 15 minutes
+      });
+
+      res.setCookie('refreshToken', refreshToken, {
+        path: '/',
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 7 * 24 * 60 * 60, // 7 days
+      });
+
       res.send({
         success: true,
         data: {
           user: safeUser,
-          accessToken,
-          refreshToken,
         },
       });
     } catch (error) {
@@ -158,9 +172,9 @@ export class UserController {
 
   async refreshToken(req: FastifyRequest, res: FastifyReply): Promise<void> {
     try {
-      const { refreshToken } = req.body as { refreshToken: string };
+      const refreshToken = req.cookies.refreshToken;
       if (!refreshToken) {
-        res.status(400).send({ success: false, message: 'Refresh token is required' });
+        res.status(400).send({ success: false, message: 'Refresh token is required in cookies' });
         return;
       }
 
@@ -170,9 +184,27 @@ export class UserController {
         return;
       }
 
+      res.setCookie('accessToken', tokens.accessToken, {
+        path: '/',
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 15 * 60, // 15 minutes
+      });
+
+      if (tokens.refreshToken) {
+        res.setCookie('refreshToken', tokens.refreshToken, {
+          path: '/',
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'lax',
+          maxAge: 7 * 24 * 60 * 60, // 7 days
+        });
+      }
+
       res.send({
         success: true,
-        data: tokens,
+        message: 'Tokens refreshed'
       });
     } catch (error) {
       res.status(500).send({
@@ -183,15 +215,18 @@ export class UserController {
     }
   }
 
-  async logout(req: FastifyRequest & { userId?: number }, res: FastifyReply): Promise<void> {
+  async logout(req: FastifyRequest & { userId?: string }, res: FastifyReply): Promise<void> {
     try {
       const userId = req.userId;
       if (!userId) {
         res.status(401).send({ success: false, message: 'Not authenticated' });
         return;
       }
-      
       await this.userService.logout(userId);
+      
+      res.clearCookie('accessToken', { path: '/' });
+      res.clearCookie('refreshToken', { path: '/' });
+
       res.send({ success: true, message: 'Logged out successfully' });
     } catch (error) {
       res.status(500).send({

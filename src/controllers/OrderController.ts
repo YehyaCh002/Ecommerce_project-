@@ -4,7 +4,7 @@ import { OrderStatus } from '../entities/Order';
 import { OrderAction } from '../entities/OrderHistory';
 
 type AuthRequest = FastifyRequest & {
-  userId?: number;
+  userId?: string;
   userRole?: string;
 };
 
@@ -17,7 +17,7 @@ export class OrderController {
   ): Promise<void> => {
     try {
       const body = req.body as any;
-      const userId = req.userId || (body.userId ? parseInt(body.userId, 10) : undefined);
+      const userId = req.userId || (body.userId ? String(body.userId) : undefined);
       if (!userId) {
         res.status(401).send({
           success: false,
@@ -122,7 +122,7 @@ export class OrderController {
   ): Promise<void> => {
     try {
       const body = (req.body as any) || {};
-      const userId = req.userId || (body.userId ? parseInt(body.userId, 10) : undefined);
+      const userId = req.userId || (body.userId ? String(body.userId) : undefined);
       if (!userId) {
         res.status(401).send({
           success: false,
@@ -312,7 +312,7 @@ export class OrderController {
   ): Promise<void> => {
     try {
       const body = (req.body as any) || {};
-      const userId = req.userId || (body.userId ? parseInt(body.userId, 10) : undefined);
+      const userId = req.userId || (body.userId ? String(body.userId) : undefined);
       if (!userId) {
         res.status(401).send({
           success: false,
@@ -339,8 +339,8 @@ export class OrderController {
     try {
       const { id } = req.params as { id: string };
       const body = (req.body as any) || {};
-      const userId = req.userId || (body.userId ? parseInt(body.userId, 10) : undefined);
-      
+      const userId = req.userId || (body.userId ? String(body.userId) : undefined);
+
       const order = await this.orderService.requestCancellation(parseInt(id), body.reason, userId);
       res.status(200).send({
         success: true,
@@ -358,7 +358,7 @@ export class OrderController {
     try {
       const { id } = req.params as { id: string };
       const body = (req.body as any) || {};
-      const userId = req.userId || (body.userId ? parseInt(body.userId, 10) : undefined);
+      const userId = req.userId || (body.userId ? String(body.userId) : undefined);
 
       if (!userId) {
         res.status(401).send({
@@ -391,7 +391,7 @@ export class OrderController {
       const { id } = req.params as { id: string };
       const body = (req.body as any) || {};
       const userRole = req.userRole || body.userRole;
-      const userId = req.userId || (body.userId ? parseInt(body.userId, 10) : undefined);
+      const userId = req.userId || (body.userId ? String(body.userId) : undefined);
 
       if (userRole !== 'admin') {
         res.status(403).send({
@@ -411,7 +411,7 @@ export class OrderController {
 
       const order = await this.orderService.approveExchange(
         parseInt(id, 10),
-        userId,
+        userId as string,
         body.note
       );
 
@@ -432,7 +432,7 @@ export class OrderController {
       const { id } = req.params as { id: string };
       const body = (req.body as any) || {};
       const userRole = req.userRole || body.userRole;
-      const userId = req.userId || (body.userId ? parseInt(body.userId, 10) : undefined);
+      const userId = req.userId || (body.userId ? String(body.userId) : undefined);
 
       if (userRole !== 'admin') {
         res.status(403).send({
@@ -452,7 +452,7 @@ export class OrderController {
 
       const order = await this.orderService.rejectExchange(
         parseInt(id, 10),
-        userId,
+        userId as string,
         body.note
       );
 
@@ -473,7 +473,7 @@ export class OrderController {
       const { id } = req.params as { id: string };
       const body = (req.body as any) || {};
       const userRole = req.userRole || body.userRole;
-      const userId = req.userId || (body.userId ? parseInt(body.userId, 10) : undefined);
+      const userId = req.userId || (body.userId ? String(body.userId) : undefined);
 
       if (userRole !== 'admin') {
         res.status(403).send({
@@ -501,7 +501,7 @@ export class OrderController {
       const { id } = req.params as { id: string };
       const body = (req.body as any) || {};
       const userRole = req.userRole || body.userRole;
-      const userId = req.userId || (body.userId ? parseInt(body.userId, 10) : undefined);
+      const userId = req.userId || (body.userId ? String(body.userId) : undefined);
 
       if (userRole !== 'admin') {
         res.status(403).send({
@@ -551,7 +551,7 @@ export class OrderController {
       const history = await this.orderService.logOrderAction(
         parseInt(id),
         action,
-        req.userId,
+        req.userId as string,
         details
       );
 
