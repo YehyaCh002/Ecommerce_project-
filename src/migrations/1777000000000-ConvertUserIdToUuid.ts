@@ -63,30 +63,84 @@ export class ConvertUserIdToUuid1777000000000 implements MigrationInterface {
       $$;
     `);
 
-    // 5) Update referencing tables: add temporary uuid columns and populate
+    // 5) Update referencing tables: add temporary uuid columns and populate (only if the tables/columns exist)
     // carts.userId -> uuid
-    await queryRunner.query(`ALTER TABLE carts ADD COLUMN "userId_uuid" UUID;`);
-    await queryRunner.query(`UPDATE carts SET "userId_uuid" = (SELECT new_uuid FROM user_uuid_map WHERE old_id = carts."userId"::bigint);`);
+    await queryRunner.query(`
+      DO $$
+      BEGIN
+        IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'carts') THEN
+          IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'carts' AND column_name = 'userId') THEN
+            EXECUTE $sql$ ALTER TABLE carts ADD COLUMN "userId_uuid" UUID; $sql$;
+            EXECUTE $sql$ UPDATE carts SET "userId_uuid" = (SELECT new_uuid FROM user_uuid_map WHERE old_id = carts."userId"::bigint); $sql$;
+          END IF;
+        END IF;
+      END
+      $$;
+    `);
 
     // orders.userId and orders.assignedToId
-    await queryRunner.query(`ALTER TABLE orders ADD COLUMN "userId_uuid" UUID;`);
-    await queryRunner.query(`ALTER TABLE orders ADD COLUMN "assignedToId_uuid" UUID;`);
-    await queryRunner.query(`UPDATE orders SET "userId_uuid" = (SELECT new_uuid FROM user_uuid_map WHERE old_id = orders."userId"::bigint);`);
-    await queryRunner.query(`UPDATE orders SET "assignedToId_uuid" = (SELECT new_uuid FROM user_uuid_map WHERE old_id = orders."assignedToId"::bigint);`);
+    await queryRunner.query(`
+      DO $$
+      BEGIN
+        IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'orders') THEN
+          IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'orders' AND column_name = 'userId') THEN
+            EXECUTE $sql$ ALTER TABLE orders ADD COLUMN "userId_uuid" UUID; $sql$;
+            EXECUTE $sql$ UPDATE orders SET "userId_uuid" = (SELECT new_uuid FROM user_uuid_map WHERE old_id = orders."userId"::bigint); $sql$;
+          END IF;
+          IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'orders' AND column_name = 'assignedToId') THEN
+            EXECUTE $sql$ ALTER TABLE orders ADD COLUMN "assignedToId_uuid" UUID; $sql$;
+            EXECUTE $sql$ UPDATE orders SET "assignedToId_uuid" = (SELECT new_uuid FROM user_uuid_map WHERE old_id = orders."assignedToId"::bigint); $sql$;
+          END IF;
+        END IF;
+      END
+      $$;
+    `);
 
     // order_history.changedByUserId
-    await queryRunner.query(`ALTER TABLE order_history ADD COLUMN "changedByUserId_uuid" UUID;`);
-    await queryRunner.query(`UPDATE order_history SET "changedByUserId_uuid" = (SELECT new_uuid FROM user_uuid_map WHERE old_id = order_history."changedByUserId"::bigint);`);
+    await queryRunner.query(`
+      DO $$
+      BEGIN
+        IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'order_history') THEN
+          IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'order_history' AND column_name = 'changedByUserId') THEN
+            EXECUTE $sql$ ALTER TABLE order_history ADD COLUMN "changedByUserId_uuid" UUID; $sql$;
+            EXECUTE $sql$ UPDATE order_history SET "changedByUserId_uuid" = (SELECT new_uuid FROM user_uuid_map WHERE old_id = order_history."changedByUserId"::bigint); $sql$;
+          END IF;
+        END IF;
+      END
+      $$;
+    `);
 
     // vendor_return_batches createdByUserId, closedByUserId
-    await queryRunner.query(`ALTER TABLE vendor_return_batches ADD COLUMN "createdByUserId_uuid" UUID;`);
-    await queryRunner.query(`ALTER TABLE vendor_return_batches ADD COLUMN "closedByUserId_uuid" UUID;`);
-    await queryRunner.query(`UPDATE vendor_return_batches SET "createdByUserId_uuid" = (SELECT new_uuid FROM user_uuid_map WHERE old_id = vendor_return_batches."createdByUserId"::bigint);`);
-    await queryRunner.query(`UPDATE vendor_return_batches SET "closedByUserId_uuid" = (SELECT new_uuid FROM user_uuid_map WHERE old_id = vendor_return_batches."closedByUserId"::bigint);`);
+    await queryRunner.query(`
+      DO $$
+      BEGIN
+        IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'vendor_return_batches') THEN
+          IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'vendor_return_batches' AND column_name = 'createdByUserId') THEN
+            EXECUTE $sql$ ALTER TABLE vendor_return_batches ADD COLUMN "createdByUserId_uuid" UUID; $sql$;
+            EXECUTE $sql$ UPDATE vendor_return_batches SET "createdByUserId_uuid" = (SELECT new_uuid FROM user_uuid_map WHERE old_id = vendor_return_batches."createdByUserId"::bigint); $sql$;
+          END IF;
+          IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'vendor_return_batches' AND column_name = 'closedByUserId') THEN
+            EXECUTE $sql$ ALTER TABLE vendor_return_batches ADD COLUMN "closedByUserId_uuid" UUID; $sql$;
+            EXECUTE $sql$ UPDATE vendor_return_batches SET "closedByUserId_uuid" = (SELECT new_uuid FROM user_uuid_map WHERE old_id = vendor_return_batches."closedByUserId"::bigint); $sql$;
+          END IF;
+        END IF;
+      END
+      $$;
+    `);
 
     // vendor_return_scans scannedByUserId
-    await queryRunner.query(`ALTER TABLE vendor_return_scans ADD COLUMN "scannedByUserId_uuid" UUID;`);
-    await queryRunner.query(`UPDATE vendor_return_scans SET "scannedByUserId_uuid" = (SELECT new_uuid FROM user_uuid_map WHERE old_id = vendor_return_scans."scannedByUserId"::bigint);`);
+    await queryRunner.query(`
+      DO $$
+      BEGIN
+        IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'vendor_return_scans') THEN
+          IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'vendor_return_scans' AND column_name = 'scannedByUserId') THEN
+            EXECUTE $sql$ ALTER TABLE vendor_return_scans ADD COLUMN "scannedByUserId_uuid" UUID; $sql$;
+            EXECUTE $sql$ UPDATE vendor_return_scans SET "scannedByUserId_uuid" = (SELECT new_uuid FROM user_uuid_map WHERE old_id = vendor_return_scans."scannedByUserId"::bigint); $sql$;
+          END IF;
+        END IF;
+      END
+      $$;
+    `);
 
     // 6) Drop foreign key constraints referencing users (if exist) and old columns, then rename uuid columns
     // Note: we attempt to drop constraints by name patterns; constraints may differ per DB — adjust if necessary.
@@ -129,9 +183,18 @@ export class ConvertUserIdToUuid1777000000000 implements MigrationInterface {
     await queryRunner.query(`ALTER TABLE vendor_return_scans RENAME COLUMN "scannedByUserId_uuid" TO "scannedByUserId";`);
     await queryRunner.query(`ALTER TABLE vendor_return_scans ADD CONSTRAINT "FK_vendor_return_scans_scannedBy" FOREIGN KEY ("scannedByUserId") REFERENCES users_new(id) ON DELETE SET NULL;`);
 
-    // 7) Replace users table
-    await queryRunner.query(`DROP TABLE users CASCADE;`);
-    await queryRunner.query(`ALTER TABLE users_new RENAME TO users;`);
+    // 7) Replace users table (only if source/target exist)
+    await queryRunner.query(`
+      DO $$
+      BEGIN
+        IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'users')
+           AND EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'users_new') THEN
+          EXECUTE $sql$ DROP TABLE users CASCADE; $sql$;
+          EXECUTE $sql$ ALTER TABLE users_new RENAME TO users; $sql$;
+        END IF;
+      END
+      $$;
+    `);
 
     // 8) Recreate primary key/sequence settings if needed (users.id is uuid PK already)
 
