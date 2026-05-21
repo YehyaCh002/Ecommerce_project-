@@ -22,8 +22,8 @@ export class AddVendorReturnBatches1778105000000 implements MigrationInterface {
         "status" "public"."vendor_return_batches_status_enum" NOT NULL DEFAULT 'open',
         "notes" text,
         "closedAt" TIMESTAMP,
-        "createdByUserId" integer,
-        "closedByUserId" integer,
+        "createdByUserId" uuid,
+        "closedByUserId" uuid,
         "createdAt" TIMESTAMP NOT NULL DEFAULT now(),
         "updatedAt" TIMESTAMP NOT NULL DEFAULT now(),
         CONSTRAINT "PK_vendor_return_batches_id" PRIMARY KEY ("id")
@@ -36,7 +36,7 @@ export class AddVendorReturnBatches1778105000000 implements MigrationInterface {
         "batchId" integer NOT NULL,
         "orderId" integer,
         "trackingNumber" character varying(100) NOT NULL,
-        "scannedByUserId" integer,
+        "scannedByUserId" uuid,
         "scannedAt" TIMESTAMP NOT NULL DEFAULT now(),
         CONSTRAINT "PK_vendor_return_scans_id" PRIMARY KEY ("id"),
         CONSTRAINT "UQ_vendor_return_scans_batch_tracking" UNIQUE ("batchId", "trackingNumber")
