@@ -23,7 +23,7 @@ export class AddRefreshTokenToUser1779289668105 implements MigrationInterface {
         await queryRunner.query(`DROP INDEX "public"."IDX_vendor_return_batches_createdAt"`);
         await queryRunner.query(`DROP INDEX "public"."IDX_vendor_return_batches_status"`);
         await queryRunner.query(`ALTER TABLE "vendor_return_scans" DROP CONSTRAINT "UQ_vendor_return_scans_batch_tracking"`);
-        await queryRunner.query(`ALTER TABLE "users" ADD "refreshToken" text`);
+        await queryRunner.query(`ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "refreshToken" text`);
         await queryRunner.query(`CREATE INDEX "IDX_ccde635bce518afe7c110858cc" ON "categories" ("parentCategoryId") `);
         await queryRunner.query(`CREATE INDEX "IDX_ad42985fb27aa9016b16ee740e" ON "products" ("subCategoryId") `);
         await queryRunner.query(`CREATE INDEX "IDX_f38d3033b7f70b32431f84c8b8" ON "stock_movements" ("createdAt") `);
@@ -65,7 +65,7 @@ export class AddRefreshTokenToUser1779289668105 implements MigrationInterface {
         await queryRunner.query(`DROP INDEX "public"."IDX_f38d3033b7f70b32431f84c8b8"`);
         await queryRunner.query(`DROP INDEX "public"."IDX_ad42985fb27aa9016b16ee740e"`);
         await queryRunner.query(`DROP INDEX "public"."IDX_ccde635bce518afe7c110858cc"`);
-        await queryRunner.query(`ALTER TABLE "users" DROP COLUMN "refreshToken"`);
+        await queryRunner.query(`ALTER TABLE "users" DROP COLUMN IF EXISTS "refreshToken"`);
         await queryRunner.query(`ALTER TABLE "vendor_return_scans" ADD CONSTRAINT "UQ_vendor_return_scans_batch_tracking" UNIQUE ("batchId", "trackingNumber")`);
         await queryRunner.query(`CREATE INDEX "IDX_vendor_return_batches_status" ON "vendor_return_batches" ("status") `);
         await queryRunner.query(`CREATE INDEX "IDX_vendor_return_batches_createdAt" ON "vendor_return_batches" ("createdAt") `);
