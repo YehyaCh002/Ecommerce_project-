@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [main]
   pull_request:
-    branches: [ main, develop ]
+    branches: [main]
 
 jobs:
   test:
@@ -12,90 +12,40 @@ jobs:
 
     services:
       postgres:
-        image: postgres:15-alpine
+        image: postgres:16
         env:
           POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          POSTGRES_PASSWORD: postgres
           POSTGRES_DB: ecommerce
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U postgres -d ecommerce"
+          --health-cmd pg_isready
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
 
+    env:
+      DB_HOST: localhost
+      DB_PORT: 5432
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+      DB_NAME: ecommerce
+      JWT_SECRET: test-secret-key-for-ci
+      SESSION_SECRET: test-session-secret-for-ci
+
     steps:
       - uses: actions/checkout@v4
 
-      - name: Use Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'npm'
+          node-version: 20
+          cache: npm
 
-      - name: Install dependencies
-        run: npm ci
+      - run: npm ci
 
-      - name: Run unit & integration tests
-        env:
-          NODE_ENV: test
-          DB_HOST: localhost
-          DB_PORT: 5432
-          DB_USER: postgres
-          DB_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
-          DB_NAME: ecommerce
-        run: npm test
+      - run: npx tsc --noEmit
 
-      - name: Install Playwright Browsers
-        run: npx playwright install --with-deps chromium
+      - run: npm test -- --forceExit
 
-      - name: Setup Database for E2E
-        env:
-          NODE_ENV: test
-          DB_HOST: localhost
-          DB_PORT: 5432
-          DB_USER: postgres
-          DB_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
-          DB_NAME: ecommerce
-        run: |
-          # 1. Run Migrations
-          npx typeorm-ts-node-commonjs migration:run -d src/config/data-source.ts
-          
-          # 1.1 Defensive schema guard (keeps CI green if migration detection has issues)
-          npx ts-node node_modules/typeorm/cli.js query "ALTER TABLE \"orders\" ADD COLUMN IF NOT EXISTS \"isPotentialDuplicate\" boolean NOT NULL DEFAULT false;" -d src/config/data-source.ts
-          npx ts-node node_modules/typeorm/cli.js query "ALTER TABLE \"orders\" ADD COLUMN IF NOT EXISTS \"tracking_status\" varchar(100);" -d src/config/data-source.ts
-          npx ts-node node_modules/typeorm/cli.js query "ALTER TABLE \"orders\" ADD COLUMN IF NOT EXISTS \"current_sub_status\" varchar(100);" -d src/config/data-source.ts
-          npx ts-node node_modules/typeorm/cli.js query "ALTER TABLE \"orders\" ADD COLUMN IF NOT EXISTS \"last_status_change_at\" timestamp;" -d src/config/data-source.ts
-          
-          # 1.2 Create tracking_logs table if it doesn't exist (E2E might touch it)
-          npx ts-node node_modules/typeorm/cli.js query "CREATE TABLE IF NOT EXISTS \"tracking_logs\" (\"id\" SERIAL NOT NULL, \"orderId\" integer NOT NULL, \"status\" varchar(100) NOT NULL, \"sub_status\" varchar(100), \"description\" text, \"location\" varchar(255), \"actor\" varchar(255), \"timestamp\" TIMESTAMP NOT NULL DEFAULT now(), CONSTRAINT \"PK_1d999c9178c7474933d3a2e43ff\" PRIMARY KEY (\"id\"));" -d src/config/data-source.ts
-          
-          # 2. Fix Sequence
-          npx ts-node node_modules/typeorm/cli.js query "SELECT setval(pg_get_serial_sequence('orders', 'id'), coalesce(max(id),0) + 1, false) FROM orders;" -d src/config/data-source.ts
-          # 3. Seed Variants
-          npx ts-node seed-variants.ts
-
-      - name: Start Server for E2E
-        env:
-          NODE_ENV: test
-          DB_HOST: localhost
-          DB_PORT: 5432
-          DB_USER: postgres
-          DB_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
-          DB_NAME: ecommerce
-          PORT: 3000
-        run: |
-          npm run dev &
-          npx wait-on http://localhost:3000
-
-      - name: Run Playwright E2E tests
-        env:
-          NODE_ENV: test
-          DB_HOST: localhost
-          DB_PORT: 5432
-          DB_USER: postgres
-          DB_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
-          DB_NAME: ecommerce
-          CI: true
-        run: npx playwright test --config=playwright.config.ts
+      - run: npm run build

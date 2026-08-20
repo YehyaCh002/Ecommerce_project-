@@ -3,7 +3,7 @@ import { Strategy as LocalStrategy } from 'passport-local';
 import { Strategy as GoogleStrategy, Profile as GoogleProfile } from 'passport-google-oauth20';
 import { AppDataSource } from './data-source';
 import { User } from '../entities/User';
-import * as bcrypt from 'bcrypt';
+import * as bcrypt from 'bcryptjs';
 
 // ─── Serialization ────────────────────────────────────────────────────────────
 // Store only the user id in the session

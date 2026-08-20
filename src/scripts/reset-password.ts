@@ -1,6 +1,6 @@
 import { AppDataSource } from '../config/data-source';
 import { User } from '../entities/User';
-import * as bcrypt from 'bcrypt';
+import * as bcrypt from 'bcryptjs';
 
 async function resetPassword(email: string, newPassword: string) {
   await AppDataSource.initialize();

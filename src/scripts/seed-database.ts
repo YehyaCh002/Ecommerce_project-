@@ -5,7 +5,7 @@ import { ProductVariant } from '../entities/ProductVariant';
 import { Wilaya } from '../entities/Wilaya';
 import { DeliveryPlatform } from '../entities/DeliveryPlatform';
 import { User } from '../entities/User';
-import * as bcrypt from 'bcrypt';
+import * as bcrypt from 'bcryptjs';
 
 
 type CategorySeed = {
