@@ -20,17 +20,24 @@ export class User {
   @Column({ type: 'varchar', length: 255, unique: true })
   email: string;
 
-  @Column({ type: 'varchar', length: 255 })
-  password: string;
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  password: string | null;
 
   @Column({ type: 'varchar', length: 50, default: 'customer' })
   role: string;
 
   @Column({ type: 'varchar', length: 500, nullable: true })
-  avatar: string;
+  avatar: string | null;
 
   @Column({ type: 'text', nullable: true })
   refreshToken: string | null;
+
+  // OAuth fields
+  @Column({ type: 'varchar', length: 50, nullable: true })
+  oauthProvider: string | null;
+
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  oauthId: string | null;
 
   @OneToMany(() => Order, (order) => order.assignedTo)
   assignedOrders: Order[];

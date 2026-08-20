@@ -6,7 +6,7 @@ import { Logger } from './utils/logger';
 
 dotenv.config();
 
-const PORT = parseInt(process.env.PORT || '3000', 10);
+const PORT = parseInt(process.env.PORT || '3002', 10);
 
 async function start() {
   try {
@@ -48,4 +48,4 @@ async function start() {
   }
 }
 
-start();
+start();

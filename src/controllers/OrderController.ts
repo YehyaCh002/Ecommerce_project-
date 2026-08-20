@@ -26,9 +26,28 @@ export class OrderController {
         return;
       }
 
-      const { shippingAddress, paymentMethod, notes, remark, internalComment, shippingFee } = body;
+      const { shippingAddress, paymentMethod, notes, remark, internalComment, shippingFee, phoneNumber, customerName } = body;
+
+      if (!phoneNumber) {
+        res.status(400).send({
+          success: false,
+          message: 'Phone number is required',
+        });
+        return;
+      }
+
+      if (!customerName) {
+        res.status(400).send({
+          success: false,
+          message: 'Customer name is required',
+        });
+        return;
+      }
+
       const order = await this.orderService.createOrderFromCart(
         userId,
+        phoneNumber,
+        customerName,
         shippingAddress,
         paymentMethod,
         remark || notes,

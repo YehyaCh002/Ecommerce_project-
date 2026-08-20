@@ -43,9 +43,18 @@ export class UserService {
     return result.affected !== 0;
   }
 
-  async login(email: string, password: string): Promise<{ user: User, accessToken: string, refreshToken: string } | null> {
+  /**
+   * Validate email + password credentials.
+   * Called directly by the LocalStrategy verify callback in passport.ts.
+   */
+  async login(
+    email: string,
+    password: string
+  ): Promise<{ user: User; accessToken: string; refreshToken: string } | null> {
     const user = await this.userRepository.findOne({ where: { email } });
     if (!user) return null;
+
+    if (!user.password) return null; // OAuth-only account
 
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) return null;
@@ -53,7 +62,26 @@ export class UserService {
     return await this.generateTokens(user);
   }
 
-  async refreshTokens(refreshToken: string): Promise<{ accessToken: string, refreshToken: string } | null> {
+  /**
+   * Issue JWT tokens for any authenticated user (local or OAuth).
+   * Public so controllers can call it after Passport sets req.user.
+   */
+  async generateTokens(
+    user: User
+  ): Promise<{ user: User; accessToken: string; refreshToken: string }> {
+    const payload = { id: user.id, role: user.role };
+    const accessToken = jwt.sign(payload, JWT_SECRET, { expiresIn: ACCESS_TOKEN_EXPIRY });
+    const refreshToken = jwt.sign(payload, JWT_REFRESH_SECRET, { expiresIn: REFRESH_TOKEN_EXPIRY });
+
+    user.refreshToken = refreshToken;
+    await this.userRepository.save(user);
+
+    return { user, accessToken, refreshToken };
+  }
+
+  async refreshTokens(
+    refreshToken: string
+  ): Promise<{ accessToken: string; refreshToken: string } | null> {
     try {
       const decoded = jwt.verify(refreshToken, JWT_REFRESH_SECRET) as { id: string };
       const user = await this.getUserById(decoded.id);
@@ -77,16 +105,5 @@ export class UserService {
       return true;
     }
     return false;
-  }
-
-  private async generateTokens(user: User): Promise<{ user: User, accessToken: string, refreshToken: string }> {
-    const payload = { id: user.id, role: user.role };
-    const accessToken = jwt.sign(payload, JWT_SECRET, { expiresIn: ACCESS_TOKEN_EXPIRY });
-    const refreshToken = jwt.sign(payload, JWT_REFRESH_SECRET, { expiresIn: REFRESH_TOKEN_EXPIRY });
-
-    user.refreshToken = refreshToken;
-    await this.userRepository.save(user);
-
-    return { user, accessToken, refreshToken };
   }
 }

@@ -8,6 +8,24 @@ export class UserController {
     this.userService = new UserService();
   }
 
+  async getCurrentUser(req: FastifyRequest & { userId?: string }, res: FastifyReply): Promise<void> {
+    try {
+      const user = await this.userService.getUserById(req.userId!);
+      if (!user) {
+        res.status(404).send({ success: false, message: 'User not found' });
+        return;
+      }
+      const { password: _, refreshToken: __, ...safeUser } = user as any;
+      res.send({ success: true, data: safeUser });
+    } catch (error) {
+      res.status(500).send({
+        success: false,
+        message: 'Error fetching current user',
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+    }
+  }
+
   async getAllUsers(req: FastifyRequest, res: FastifyReply): Promise<void> {
     try {
       const users = await this.userService.getAllUsers();
@@ -123,21 +141,17 @@ export class UserController {
 
   async login(req: FastifyRequest, res: FastifyReply): Promise<void> {
     try {
-      const { email, password } = req.body as any;
-      if (!email || !password) {
-        res.status(400).send({ success: false, message: 'Email and password are required' });
-        return;
-      }
-
-      const result = await this.userService.login(email, password);
-      if (!result) {
+      // req.user is populated by Passport's LocalStrategy (preValidation hook)
+      const user = (req as any).user as import('../entities/User').User | undefined;
+      if (!user) {
         res.status(401).send({ success: false, message: 'Invalid credentials' });
         return;
       }
 
-      const { user, accessToken, refreshToken } = result;
+      const { accessToken, refreshToken } = await this.userService.generateTokens(user);
+
       // remove sensitive data like password
-      const { password: _, refreshToken: __, ...safeUser } = user;
+      const { password: _, refreshToken: __, oauthId: _oi, oauthProvider: _op, ...safeUser } = user as any;
 
       res.setCookie('accessToken', accessToken, {
         path: '/',

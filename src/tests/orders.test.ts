@@ -54,6 +54,8 @@ describe('Order Routes Integration Tests', () => {
     const validOrder = {
       shippingAddress: '123 Main St',
       paymentMethod: 'Credit Card',
+      phoneNumber: '0555000111',
+      customerName: 'Test User',
     };
 
     it('should return 201 when creating an order from cart', async () => {

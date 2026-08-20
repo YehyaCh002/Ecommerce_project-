@@ -1,8 +1,13 @@
+import { Repository } from 'typeorm';
 import { AppDataSource } from '../config/data-source';
 import { DeliveryPlatform } from '../entities/DeliveryPlatform';
 
 export class DeliveryPlatformService {
-  private platformRepository = AppDataSource.getRepository(DeliveryPlatform);
+  private platformRepository: Repository<DeliveryPlatform>;
+
+  constructor(platformRepository?: Repository<DeliveryPlatform>) {
+    this.platformRepository = platformRepository || AppDataSource.getRepository(DeliveryPlatform);
+  }
 
   async getAllPlatforms(): Promise<DeliveryPlatform[]> {
     return await this.platformRepository.find({

@@ -4,12 +4,16 @@ import { ProductVariant } from '../entities/ProductVariant';
 import { StockMovement } from '../entities/StockMovement';
 import { Category } from '../entities/Category';
 import { FindOptionsWhere, Like } from 'typeorm';
+import { CategoryService } from './CategoryService';
 
 export class ProductService {
   private productRepository = AppDataSource.getRepository(Product);
   private variantRepository = AppDataSource.getRepository(ProductVariant);
   private stockMovementRepository = AppDataSource.getRepository(StockMovement);
-  private categoryRepository = AppDataSource.getRepository(Category);
+
+  constructor(
+    private categoryService: CategoryService = new CategoryService()
+  ) {}
 
   private isReactivationOnlyUpdate(data: Partial<Product>): boolean {
     const keys = Object.keys(data).filter(
@@ -168,18 +172,14 @@ export class ProductService {
     }>;
   }): Promise<Product> {
     if (data.categoryId) {
-      const category = await this.categoryRepository.findOne({
-        where: { id: data.categoryId },
-      });
+      const category = await this.categoryService.getCategoryById(data.categoryId);
       if (!category) {
         throw new Error('Category not found');
       }
     }
 
     if (data.subCategoryId) {
-      const subCategory = await this.categoryRepository.findOne({
-        where: { id: data.subCategoryId },
-      });
+      const subCategory = await this.categoryService.getCategoryById(data.subCategoryId);
 
       if (!subCategory) {
         throw new Error('Sub-category not found');
@@ -329,9 +329,7 @@ export class ProductService {
     }
 
     if (data.subCategoryId) {
-      const subCategory = await this.categoryRepository.findOne({
-        where: { id: data.subCategoryId },
-      });
+      const subCategory = await this.categoryService.getCategoryById(data.subCategoryId);
       if (!subCategory) {
         throw new Error('Sub-category not found');
       }

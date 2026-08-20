@@ -19,26 +19,32 @@ import {
 import { VendorReturnScan } from '../entities/VendorReturnScan';
 import { CartService } from './CartService';
 import { ProductService } from './ProductService';
+import { CustomerService } from './CustomerService';
+import { DeliveryPlatformService } from './DeliveryPlatformService';
 
 export class OrderService {
   private static readonly EXCHANGE_WINDOW_DAYS = 3;
   orderRepository: any;
   orderItemRepository: any;
   orderHistoryRepository: any;
-  customerRepository: any;
-  platformRepository: any;
+  customerService: CustomerService;
+  deliveryPlatformService: DeliveryPlatformService;
   trackingLogRepository: any;
   vendorReturnBatchRepository: any;
   vendorReturnScanRepository: any;
   cartService: any;
   productService: any;
 
+  // Deprecated: use customerService / deliveryPlatformService instead
+  get customerRepository() { return (this.customerService as any).customerRepository; }
+  get platformRepository() { return (this.deliveryPlatformService as any).platformRepository; }
+
   constructor(
     orderRepository?: any,
     orderItemRepository?: any,
     orderHistoryRepository?: any,
-    customerRepository?: any,
-    platformRepository?: any,
+    customerRepositoryOrService?: any,
+    platformRepositoryOrService?: any,
     trackingLogRepository?: any,
     cartService?: any,
     productService?: any,
@@ -48,8 +54,27 @@ export class OrderService {
     this.orderRepository = orderRepository || AppDataSource.getRepository(Order);
     this.orderItemRepository = orderItemRepository || AppDataSource.getRepository(OrderItem);
     this.orderHistoryRepository = orderHistoryRepository || AppDataSource.getRepository(OrderHistory);
-    this.customerRepository = customerRepository || AppDataSource.getRepository(Customer);
-    this.platformRepository = platformRepository || AppDataSource.getRepository(DeliveryPlatform);
+    
+    if (customerRepositoryOrService) {
+      if (typeof customerRepositoryOrService.findOrCreateOrUpdateCustomer === 'function') {
+        this.customerService = customerRepositoryOrService;
+      } else {
+        this.customerService = new CustomerService(customerRepositoryOrService);
+      }
+    } else {
+      this.customerService = new CustomerService();
+    }
+
+    if (platformRepositoryOrService) {
+      if (typeof platformRepositoryOrService.getPlatformById === 'function') {
+        this.deliveryPlatformService = platformRepositoryOrService;
+      } else {
+        this.deliveryPlatformService = new DeliveryPlatformService(platformRepositoryOrService);
+      }
+    } else {
+      this.deliveryPlatformService = new DeliveryPlatformService();
+    }
+
     this.trackingLogRepository = trackingLogRepository || AppDataSource.getRepository(TrackingLog);
     this.vendorReturnBatchRepository = vendorReturnBatchRepository || null;
     this.vendorReturnScanRepository = vendorReturnScanRepository || null;
@@ -176,6 +201,8 @@ export class OrderService {
 
   async createOrderFromCart(
     userId: string,
+    phoneNumber: string,
+    customerName: string,
     shippingAddress: string,
     paymentMethod: string,
     remark?: string,
@@ -214,14 +241,11 @@ export class OrderService {
     // Final total including shipping fee
     const finalTotalPrice = totalPrice + Number(shippingFee);
 
-    const phoneNumber = '0000000000'; // TODO: Fetch real phone from user entity
     const isPotentialDuplicate = await this.checkIsPotentialDuplicate(phoneNumber);
 
-    // Get user info for customer name and phone (you may need to adjust this)
-    // For now, using placeholder values - you should fetch from user entity
     const order = this.orderRepository.create({
       userId,
-      customerName: 'Customer', // TODO: Fetch from user entity
+      customerName,
       phoneNumber,
       totalPrice: finalTotalPrice,
       shippingAddress,
@@ -302,25 +326,12 @@ export class OrderService {
     soldFromStore: boolean = false
   ): Promise<Order> {
     // 1. Find or Create Customer
-    let customer = await this.customerRepository.findOne({
-      where: { phoneNumber: customerInfo.phoneNumber },
+    let customer = await this.customerService.findOrCreateOrUpdateCustomer({
+      name: customerInfo.name,
+      phoneNumber: customerInfo.phoneNumber,
+      email: customerInfo.email,
+      address: customerInfo.address,
     });
-
-    if (!customer) {
-      customer = this.customerRepository.create({
-        name: customerInfo.name,
-        phoneNumber: customerInfo.phoneNumber,
-        email: customerInfo.email,
-        defaultAddress: customerInfo.address,
-      });
-      customer = await this.customerRepository.save(customer);
-    } else {
-      // Update info if it's an existing customer
-      customer.name = customerInfo.name;
-      if (customerInfo.email) customer.email = customerInfo.email;
-      if (customerInfo.address) customer.defaultAddress = customerInfo.address;
-      await this.customerRepository.save(customer);
-    }
 
     // 2. Calculate Total and Validate Stock
     let totalPrice = 0;
@@ -378,8 +389,7 @@ export class OrderService {
     const savedOrder = await this.orderRepository.save(order);
 
     // 4. Update Customer Stats
-    customer.totalOrdersCount += 1;
-    await this.customerRepository.save(customer);
+    await this.customerService.incrementOrdersCount(customer);
 
     // 5. Initial history entry
     await this.addOrderHistory(
@@ -1557,9 +1567,7 @@ export class OrderService {
     const order = await this.getOrderById(id);
     if (!order) return null;
 
-    const platform = await this.platformRepository.findOne({
-      where: { id: platformId },
-    });
+    const platform = await this.deliveryPlatformService.getPlatformById(platformId);
     if (!platform) throw new Error('Delivery platform not found');
 
     await this.orderRepository.update(id, { deliveryPlatformId: platformId });
