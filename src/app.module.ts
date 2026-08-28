@@ -2,6 +2,7 @@ import { Module, ValidationPipe } from '@nestjs/common';
 import { APP_FILTER, APP_PIPE } from '@nestjs/core';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 import { AuthModule } from './auth/auth.module';
+import { HealthModule } from './health/health.module';
 import { UsersModule } from './users/users.module';
 import { ProductsModule } from './products/products.module';
 import { CategoriesModule } from './categories/categories.module';
@@ -11,6 +12,7 @@ import { DeliveryPlatformsModule } from './delivery-platforms/delivery-platforms
 
 @Module({
   imports: [
+    HealthModule,
     AuthModule,
     UsersModule,
     ProductsModule,

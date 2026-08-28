@@ -4,6 +4,7 @@ import {
   Controller,
   Get,
   HttpCode,
+  InternalServerErrorException,
   NotFoundException,
   Param,
   Patch,
@@ -99,18 +100,24 @@ export class OrdersController {
       throw new BadRequestException('Order must contain at least one item');
     }
 
-    const order = await this.orderService.createGuestOrder(
-      customerInfo,
-      items,
-      paymentMethod,
-      remark || notes,
-      internalComment,
-      shippingFee,
-      customerInfo.deliveryType || body.deliveryType,
-      customerInfo.soldFromStore !== undefined ? customerInfo.soldFromStore : body.soldFromStore,
-    );
+    try {
+      const order = await this.orderService.createGuestOrder(
+        customerInfo,
+        items,
+        paymentMethod,
+        remark || notes,
+        internalComment,
+        shippingFee,
+        customerInfo.deliveryType || body.deliveryType,
+        customerInfo.soldFromStore !== undefined ? customerInfo.soldFromStore : body.soldFromStore,
+      );
 
-    return { success: true, data: order };
+      return { success: true, data: order };
+    } catch (error) {
+      throw new BadRequestException(
+        error instanceof Error ? error.message : 'Failed to create order',
+      );
+    }
   }
 
   @Get('my-orders')
@@ -137,17 +144,23 @@ export class OrdersController {
       ? body.trackingNumbers
       : [];
 
-    const data = await this.orderService.createVendorReturnBatch({
-      dischargeReference: body.dischargeReference,
-      trackingNumbers,
-      deliveryPlatformId: body.deliveryPlatformId
-        ? parseInt(String(body.deliveryPlatformId), 10)
-        : undefined,
-      notes: body.notes,
-      createdByUserId: this.resolveUserId(req, body),
-    });
+    try {
+      const data = await this.orderService.createVendorReturnBatch({
+        dischargeReference: body.dischargeReference,
+        trackingNumbers,
+        deliveryPlatformId: body.deliveryPlatformId
+          ? parseInt(String(body.deliveryPlatformId), 10)
+          : undefined,
+        notes: body.notes,
+        createdByUserId: this.resolveUserId(req, body),
+      });
 
-    return { success: true, data };
+      return { success: true, data };
+    } catch (error) {
+      throw new BadRequestException(
+        error instanceof Error ? error.message : 'Failed to create vendor return batch',
+      );
+    }
   }
 
   @Get('vendor-returns/batches/:id')
@@ -160,7 +173,7 @@ export class OrdersController {
       );
       return { success: true, data };
     } catch (error) {
-      throw new BadRequestException(
+      throw new NotFoundException(
         error instanceof Error ? error.message : 'Failed to fetch vendor return batch',
       );
     }
@@ -175,12 +188,18 @@ export class OrdersController {
     @Param('id') id: string,
   ) {
     const body = (req.body as any) || {};
-    const data = await this.orderService.scanVendorReturnParcel({
-      batchId: parseInt(id, 10),
-      trackingNumber: body.trackingNumber,
-      scannedByUserId: this.resolveUserId(req, body),
-    });
-    return { success: true, data };
+    try {
+      const data = await this.orderService.scanVendorReturnParcel({
+        batchId: parseInt(id, 10),
+        trackingNumber: body.trackingNumber,
+        scannedByUserId: this.resolveUserId(req, body),
+      });
+      return { success: true, data };
+    } catch (error) {
+      throw new BadRequestException(
+        error instanceof Error ? error.message : 'Failed to scan vendor return parcel',
+      );
+    }
   }
 
   @Post('vendor-returns/batches/:id/close')
@@ -192,12 +211,18 @@ export class OrdersController {
     @Param('id') id: string,
   ) {
     const body = (req.body as any) || {};
-    const data = await this.orderService.closeVendorReturnBatch({
-      batchId: parseInt(id, 10),
-      closedByUserId: this.resolveUserId(req, body),
-      note: body.note,
-    });
-    return { success: true, data };
+    try {
+      const data = await this.orderService.closeVendorReturnBatch({
+        batchId: parseInt(id, 10),
+        closedByUserId: this.resolveUserId(req, body),
+        note: body.note,
+      });
+      return { success: true, data };
+    } catch (error) {
+      throw new BadRequestException(
+        error instanceof Error ? error.message : 'Failed to close vendor return batch',
+      );
+    }
   }
 
   // ─── Basic order access ────────────────────────────────────────────────────
@@ -464,13 +489,19 @@ export class OrdersController {
       throw new BadRequestException('Platform ID is required');
     }
 
-    const order = await this.orderService.updateOrderDeliveryPlatform(
-      parseInt(id),
-      parseInt(platformId, 10),
-      this.resolveUserId(req, body),
-    );
+    try {
+      const order = await this.orderService.updateOrderDeliveryPlatform(
+        parseInt(id),
+        parseInt(platformId, 10),
+        this.resolveUserId(req, body),
+      );
 
-    return { success: true, data: order };
+      return { success: true, data: order };
+    } catch (error) {
+      throw new BadRequestException(
+        error instanceof Error ? error.message : 'Failed to assign platform',
+      );
+    }
   }
 
   @Post(':id/tracking-log')
@@ -485,16 +516,22 @@ export class OrdersController {
       throw new BadRequestException('Status is required');
     }
 
-    const log = await this.orderService.addTrackingLog(
-      parseInt(id),
-      status,
-      subStatus,
-      description,
-      location,
-      actor,
-    );
+    try {
+      const log = await this.orderService.addTrackingLog(
+        parseInt(id),
+        status,
+        subStatus,
+        description,
+        location,
+        actor,
+      );
 
-    return { success: true, data: log };
+      return { success: true, data: log };
+    } catch (error) {
+      throw new BadRequestException(
+        error instanceof Error ? error.message : 'Failed to add tracking log',
+      );
+    }
   }
 
   // ─── Stats & dashboards ────────────────────────────────────────────────────
@@ -506,7 +543,7 @@ export class OrdersController {
       const orders = await this.orderService.getWilayaTrackingOrders();
       return { success: true, data: orders, count: orders.length };
     } catch (error) {
-      throw error;
+      throw new InternalServerErrorException('Failed to fetch wilaya tracking orders');
     }
   }
 
@@ -534,8 +571,12 @@ export class OrdersController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('admin')
   async getConfirmationStats() {
-    const stats = await this.orderService.getConfirmationStats();
-    return { success: true, data: stats };
+    try {
+      const stats = await this.orderService.getConfirmationStats();
+      return { success: true, data: stats };
+    } catch (error) {
+      throw new InternalServerErrorException('Failed to fetch confirmation stats');
+    }
   }
 
   @Get('stats/commandes')
