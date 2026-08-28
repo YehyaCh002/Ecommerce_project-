@@ -1,6 +1,6 @@
 import 'reflect-metadata';
 import dotenv from 'dotenv';
-import { buildApp } from './app';
+import { bootstrap } from './main';
 import { AppDataSource } from './config/data-source';
 import { Logger } from './utils/logger';
 
@@ -10,21 +10,10 @@ const PORT = parseInt(process.env.PORT || '3002', 10);
 
 async function start() {
   try {
-    const app = await buildApp();
+    const app = await bootstrap();
 
-    // =====================
-    // Initialize Database & Start Server
-    // =====================
-    await AppDataSource.initialize();
-    Logger.info('Database connection successfully');
-
-    app.listen({ port: PORT, host: '0.0.0.0' }, (err, address) => {
-      if (err) {
-        Logger.error('Error starting server:', err);
-        process.exit(1);
-      }
-      Logger.info(`Server is running at ${address}`);
-    });
+    await app.listen({ port: PORT, host: '0.0.0.0' });
+    Logger.info(`Server is running at http://0.0.0.0:${PORT}`);
 
     // =====================
     // Graceful Shutdown
@@ -41,7 +30,6 @@ async function start() {
 
     process.on('SIGTERM', shutdown);
     process.on('SIGINT', shutdown);
-
   } catch (error) {
     Logger.error('Error during startup:', error);
     process.exit(1);

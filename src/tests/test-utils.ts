@@ -1,5 +1,13 @@
+import 'reflect-metadata';
 import { FastifyInstance } from 'fastify';
-import { buildApp } from '../app';
+import Fastify from 'fastify';
+import cookie from '@fastify/cookie';
+import { NestFactory } from '@nestjs/core';
+import {
+  FastifyAdapter,
+  NestFastifyApplication,
+} from '@nestjs/platform-fastify';
+import { AppModule } from '../app.module';
 import { AppDataSource } from '../config/data-source';
 
 export async function initializeDataSource() {
@@ -15,12 +23,24 @@ export async function destroyDataSource() {
   }
 }
 
-export async function setupTest() {
+export async function setupTest(): Promise<FastifyInstance> {
   await initializeDataSource();
-  const app = await buildApp();
-  await app.ready();
-  
-  return app;
+
+  const instance = Fastify({ logger: false });
+  await instance.register(cookie as any, {
+    secret: process.env.COOKIE_SECRET || 'super-secret-cookie-xyz-123',
+  });
+
+  const app = await NestFactory.create<NestFastifyApplication>(
+    AppModule,
+    new FastifyAdapter(instance as any),
+    { logger: false },
+  );
+
+  await app.init();
+  await instance.ready();
+
+  return instance;
 }
 
 export async function teardownTest(app: FastifyInstance) {
@@ -67,7 +87,7 @@ export async function sendAuthenticatedRequest(
   }
 ) {
   const { userId = '5', role = 'customer', ...rest } = options;
-  
+
   const token = jwt.sign({ id: Number(userId), role }, JWT_SECRET, { expiresIn: '1h' });
 
   return sendRequest(app, {

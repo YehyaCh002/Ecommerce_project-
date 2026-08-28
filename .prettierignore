@@ -1,0 +1,7 @@
+node_modules
+dist
+build
+frontend_ecomm
+playwright-report
+test-results
+coverage
