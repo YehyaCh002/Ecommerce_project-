@@ -62,10 +62,7 @@ export class CategoriesController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('admin')
   async updateCategory(@Param('id') id: string, @Body() dto: CategoryDto) {
-    const category = await this.categoryService.updateCategory(
-      parseInt(id, 10),
-      dto as any,
-    );
+    const category = await this.categoryService.updateCategory(parseInt(id, 10), dto as any);
     if (!category) {
       throw new NotFoundException('Category not found');
     }

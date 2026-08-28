@@ -50,17 +50,23 @@ export class OrdersController {
   @Post()
   @HttpCode(201)
   @UseGuards(JwtAuthGuard)
-  async createOrder(
-    @Req() req: AuthenticatedRequest,
-    @Body() dto: CreateOrderDto,
-  ) {
+  async createOrder(@Req() req: AuthenticatedRequest, @Body() dto: CreateOrderDto) {
     const body = dto as any;
     const userId = this.resolveUserId(req, body);
     if (!userId) {
       throw new UnauthorizedException('User ID required');
     }
 
-    const { shippingAddress, paymentMethod, notes, remark, internalComment, shippingFee, phoneNumber, customerName } = body;
+    const {
+      shippingAddress,
+      paymentMethod,
+      notes,
+      remark,
+      internalComment,
+      shippingFee,
+      phoneNumber,
+      customerName,
+    } = body;
 
     if (!phoneNumber) {
       throw new BadRequestException('Phone number is required');
@@ -85,12 +91,10 @@ export class OrdersController {
 
   @Post('quick-order')
   @HttpCode(201)
-  async createQuickOrder(
-    @Body() dto: QuickOrderDto,
-    @Req() req: FastifyRequest,
-  ) {
+  async createQuickOrder(@Body() dto: QuickOrderDto, @Req() req: FastifyRequest) {
     const body = req.body as any;
-    const { customerInfo, items, paymentMethod, notes, remark, internalComment, shippingFee } = body;
+    const { customerInfo, items, paymentMethod, notes, remark, internalComment, shippingFee } =
+      body;
 
     if (!customerInfo || !customerInfo.name || !customerInfo.phoneNumber) {
       throw new BadRequestException('Customer name and phone number are required');
@@ -123,7 +127,7 @@ export class OrdersController {
   @Get('my-orders')
   @UseGuards(JwtAuthGuard)
   async getUserOrders(@Req() req: AuthenticatedRequest) {
-    const body = ((req.body as any) || {});
+    const body = (req.body as any) || {};
     const userId = this.resolveUserId(req, body);
     if (!userId) {
       throw new UnauthorizedException('User ID required');
@@ -140,9 +144,7 @@ export class OrdersController {
   @Roles('admin')
   async createVendorReturnBatch(@Req() req: AuthenticatedRequest) {
     const body = (req.body as any) || {};
-    const trackingNumbers = Array.isArray(body.trackingNumbers)
-      ? body.trackingNumbers
-      : [];
+    const trackingNumbers = Array.isArray(body.trackingNumbers) ? body.trackingNumbers : [];
 
     try {
       const data = await this.orderService.createVendorReturnBatch({
@@ -168,9 +170,7 @@ export class OrdersController {
   @Roles('admin')
   async getVendorReturnBatchSummary(@Param('id') id: string) {
     try {
-      const data = await this.orderService.getVendorReturnBatchSummary(
-        parseInt(id, 10),
-      );
+      const data = await this.orderService.getVendorReturnBatchSummary(parseInt(id, 10));
       return { success: true, data };
     } catch (error) {
       throw new NotFoundException(
@@ -183,10 +183,7 @@ export class OrdersController {
   @HttpCode(200)
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('admin')
-  async scanVendorReturnParcel(
-    @Req() req: AuthenticatedRequest,
-    @Param('id') id: string,
-  ) {
+  async scanVendorReturnParcel(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
     const body = (req.body as any) || {};
     try {
       const data = await this.orderService.scanVendorReturnParcel({
@@ -206,10 +203,7 @@ export class OrdersController {
   @HttpCode(200)
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('admin')
-  async closeVendorReturnBatch(
-    @Req() req: AuthenticatedRequest,
-    @Param('id') id: string,
-  ) {
+  async closeVendorReturnBatch(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
     const body = (req.body as any) || {};
     try {
       const data = await this.orderService.closeVendorReturnBatch({
@@ -260,18 +254,11 @@ export class OrdersController {
   @Post(':id/cancel-request')
   @HttpCode(200)
   @UseGuards(JwtAuthGuard)
-  async requestCancellation(
-    @Req() req: AuthenticatedRequest,
-    @Param('id') id: string,
-  ) {
+  async requestCancellation(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
     const body = (req.body as any) || {};
     const userId = this.resolveUserId(req, body);
 
-    const order = await this.orderService.requestCancellation(
-      parseInt(id),
-      body.reason,
-      userId,
-    );
+    const order = await this.orderService.requestCancellation(parseInt(id), body.reason, userId);
     return { success: true, data: order };
   }
 
@@ -309,11 +296,7 @@ export class OrdersController {
       throw new UnauthorizedException('User ID required');
     }
 
-    const order = await this.orderService.requestExchange(
-      parseInt(id),
-      userId,
-      body.reason,
-    );
+    const order = await this.orderService.requestExchange(parseInt(id), userId, body.reason);
 
     return { success: true, data: order };
   }
@@ -330,11 +313,7 @@ export class OrdersController {
       throw new UnauthorizedException('User ID required');
     }
 
-    const order = await this.orderService.approveExchange(
-      parseInt(id),
-      userId,
-      body.note,
-    );
+    const order = await this.orderService.approveExchange(parseInt(id), userId, body.note);
 
     return { success: true, data: order };
   }
@@ -351,11 +330,7 @@ export class OrdersController {
       throw new UnauthorizedException('User ID required');
     }
 
-    const order = await this.orderService.rejectExchange(
-      parseInt(id),
-      userId,
-      body.note,
-    );
+    const order = await this.orderService.rejectExchange(parseInt(id), userId, body.note);
 
     return { success: true, data: order };
   }
@@ -587,9 +562,7 @@ export class OrdersController {
       tab: query.tab,
       startDate: query.startDate,
       endDate: query.endDate,
-      assignedToId: query.assignedToId
-        ? parseInt(query.assignedToId, 10)
-        : undefined,
+      assignedToId: query.assignedToId ? parseInt(query.assignedToId, 10) : undefined,
       status: query.status,
       search: query.search,
     });
@@ -604,9 +577,7 @@ export class OrdersController {
     const data = await this.orderService.getRetoursStatistics({
       startDate: query.startDate,
       endDate: query.endDate,
-      assignedToId: query.assignedToId
-        ? parseInt(query.assignedToId, 10)
-        : undefined,
+      assignedToId: query.assignedToId ? parseInt(query.assignedToId, 10) : undefined,
       platformId: query.platformId ? parseInt(query.platformId, 10) : undefined,
       wilayaId: query.wilayaId ? parseInt(query.wilayaId, 10) : undefined,
       search: query.search,
@@ -622,9 +593,7 @@ export class OrdersController {
     const data = await this.orderService.getEchecsStatistics({
       startDate: query.startDate,
       endDate: query.endDate,
-      assignedToId: query.assignedToId
-        ? parseInt(query.assignedToId, 10)
-        : undefined,
+      assignedToId: query.assignedToId ? parseInt(query.assignedToId, 10) : undefined,
       platformId: query.platformId ? parseInt(query.platformId, 10) : undefined,
       wilayaId: query.wilayaId ? parseInt(query.wilayaId, 10) : undefined,
       search: query.search,

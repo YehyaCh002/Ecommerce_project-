@@ -1,3 +1,4 @@
+import path from 'path';
 import { DataSource } from 'typeorm';
 import dotenv from 'dotenv';
 import { User } from '../entities/User';
@@ -23,8 +24,10 @@ console.log('Connecting to:', {
   host: process.env.DB_HOST || 'localhost',
   port: process.env.DB_PORT || '5432',
   user: process.env.DB_USER || 'postgres',
-  db: process.env.DB_NAME || 'ecommerces'
+  db: process.env.DB_NAME || 'ecommerces',
 });
+
+const isCompiled = __dirname.includes(`${path.sep}dist${path.sep}config`);
 
 export const AppDataSource = new DataSource({
   type: 'postgres',
@@ -35,13 +38,24 @@ export const AppDataSource = new DataSource({
   database: process.env.DB_NAME || 'ecommerce',
   synchronize: false,
   logging: process.env.NODE_ENV === 'development',
-  entities: [User, Product, Category, Order, OrderItem, Cart, CartItem, Wilaya, OrderHistory, Customer, DeliveryPlatform, ProductVariant, TrackingLog, StockMovement, VendorReturnBatch, VendorReturnScan],
-  migrations: [
-    process.env.NODE_ENV === 'production' 
-      ? 'dist/migrations/**/*.js' 
-      : 'src/migrations/**/*.ts'
+  entities: [
+    User,
+    Product,
+    Category,
+    Order,
+    OrderItem,
+    Cart,
+    CartItem,
+    Wilaya,
+    OrderHistory,
+    Customer,
+    DeliveryPlatform,
+    ProductVariant,
+    TrackingLog,
+    StockMovement,
+    VendorReturnBatch,
+    VendorReturnScan,
   ],
+  migrations: [isCompiled ? 'dist/migrations/**/*.js' : 'src/migrations/**/*.ts'],
   subscribers: [],
 });
-
-

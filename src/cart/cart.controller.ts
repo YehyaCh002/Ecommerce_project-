@@ -37,10 +37,7 @@ export class CartController {
   }
 
   @Get()
-  async getCart(
-    @CurrentUser() user: UserContext | undefined,
-    @Req() req: AuthenticatedRequest,
-  ) {
+  async getCart(@CurrentUser() user: UserContext | undefined, @Req() req: AuthenticatedRequest) {
     const body = (req.body as any) || {};
     const userId = this.requireUserId(this.resolveUserId(user, body));
 
@@ -62,10 +59,7 @@ export class CartController {
 
   @Post('items')
   @HttpCode(200)
-  async addItemToCart(
-    @CurrentUser() user: UserContext | undefined,
-    @Body() dto: AddCartItemDto,
-  ) {
+  async addItemToCart(@CurrentUser() user: UserContext | undefined, @Body() dto: AddCartItemDto) {
     try {
       const userId = this.requireUserId(user?.id);
       const cart = await this.cartService.addItemToCart(
@@ -91,11 +85,7 @@ export class CartController {
     const body = (req.body as any) || {};
     const userId = this.requireUserId(this.resolveUserId(user, body));
 
-    const cart = await this.cartService.updateCartItem(
-      userId,
-      parseInt(itemId, 10),
-      body.quantity,
-    );
+    const cart = await this.cartService.updateCartItem(userId, parseInt(itemId, 10), body.quantity);
     return { success: true, data: cart };
   }
 
@@ -108,18 +98,12 @@ export class CartController {
     const body = (req.body as any) || {};
     const userId = this.requireUserId(this.resolveUserId(user, body));
 
-    const cart = await this.cartService.removeItemFromCart(
-      userId,
-      parseInt(itemId, 10),
-    );
+    const cart = await this.cartService.removeItemFromCart(userId, parseInt(itemId, 10));
     return { success: true, data: cart };
   }
 
   @Delete()
-  async clearCart(
-    @CurrentUser() user: UserContext | undefined,
-    @Req() req: AuthenticatedRequest,
-  ) {
+  async clearCart(@CurrentUser() user: UserContext | undefined, @Req() req: AuthenticatedRequest) {
     const body = (req.body as any) || {};
     const userId = this.requireUserId(this.resolveUserId(user, body));
 

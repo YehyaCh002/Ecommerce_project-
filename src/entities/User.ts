@@ -33,10 +33,10 @@ export class User {
   refreshToken: string | null;
 
   // OAuth fields
-  @Column({ type: 'varchar', length: 50, nullable: true })
+  @Column({ type: 'varchar', length: 50, nullable: true, name: 'oauth_provider' })
   oauthProvider: string | null;
 
-  @Column({ type: 'varchar', length: 255, nullable: true })
+  @Column({ type: 'varchar', length: 255, nullable: true, name: 'oauth_id' })
   oauthId: string | null;
 
   @OneToMany(() => Order, (order) => order.assignedTo)

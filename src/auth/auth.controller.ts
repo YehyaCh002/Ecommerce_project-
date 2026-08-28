@@ -1,16 +1,6 @@
-import {
-  Controller,
-  Get,
-  HttpCode,
-  Post,
-  Query,
-  Res,
-} from '@nestjs/common';
+import { Controller, Get, HttpCode, Post, Query, Res } from '@nestjs/common';
 import { FastifyReply } from 'fastify';
-import {
-  accessTokenCookieOptions,
-  refreshTokenCookieOptions,
-} from '../common/cookies';
+import { accessTokenCookieOptions, refreshTokenCookieOptions } from '../common/cookies';
 import { UserService } from '../services/UserService';
 import { AuthService } from './auth.service';
 
@@ -36,9 +26,7 @@ export class AuthController {
   @Get('status')
   getStatus() {
     return {
-      googleOAuth: GOOGLE_CLIENT_ID
-        ? 'enabled'
-        : 'disabled (set GOOGLE_CLIENT_ID env var)',
+      googleOAuth: GOOGLE_CLIENT_ID ? 'enabled' : 'disabled (set GOOGLE_CLIENT_ID env var)',
     };
   }
 
@@ -77,10 +65,7 @@ export class AuthController {
         return res.redirect(`${FRONTEND_URL}/login?error=google_auth_failed`);
       }
 
-      const fetchImpl = (globalThis as any).fetch as (
-        url: string,
-        init?: any,
-      ) => Promise<any>;
+      const fetchImpl = (globalThis as any).fetch as (url: string, init?: any) => Promise<any>;
 
       const tokenResponse = await fetchImpl('https://oauth2.googleapis.com/token', {
         method: 'POST',
@@ -99,10 +84,9 @@ export class AuthController {
 
       const oauthTokens = await tokenResponse.json();
 
-      const userInfoResponse = await fetchImpl(
-        'https://www.googleapis.com/oauth2/v2/userinfo',
-        { headers: { Authorization: `Bearer ${oauthTokens.access_token}` } },
-      );
+      const userInfoResponse = await fetchImpl('https://www.googleapis.com/oauth2/v2/userinfo', {
+        headers: { Authorization: `Bearer ${oauthTokens.access_token}` },
+      });
 
       const profile = await userInfoResponse.json();
 

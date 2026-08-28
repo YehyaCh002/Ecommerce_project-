@@ -4,8 +4,6 @@ import { CategoriesController } from './categories.controller';
 
 @Module({
   controllers: [CategoriesController],
-  providers: [
-    { provide: CategoryService, useFactory: () => new CategoryService() },
-  ],
+  providers: [{ provide: CategoryService, useFactory: () => new CategoryService() }],
 })
 export class CategoriesModule {}

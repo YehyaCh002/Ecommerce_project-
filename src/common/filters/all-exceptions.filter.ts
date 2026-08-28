@@ -24,7 +24,9 @@ export class AllExceptionsFilter implements ExceptionFilter {
       const body = exception.getResponse();
 
       if (typeof body === 'string') {
-        response.status(status).send({ success: false, message: body, statusCode: status, error: exception.name });
+        response
+          .status(status)
+          .send({ success: false, message: body, statusCode: status, error: exception.name });
         return;
       }
 

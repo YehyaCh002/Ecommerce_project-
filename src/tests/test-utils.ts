@@ -3,10 +3,7 @@ import { FastifyInstance } from 'fastify';
 import Fastify from 'fastify';
 import cookie from '@fastify/cookie';
 import { NestFactory } from '@nestjs/core';
-import {
-  FastifyAdapter,
-  NestFastifyApplication,
-} from '@nestjs/platform-fastify';
+import { FastifyAdapter, NestFastifyApplication } from '@nestjs/platform-fastify';
 import { AppModule } from '../app.module';
 import { AppDataSource } from '../config/data-source';
 
@@ -55,7 +52,7 @@ export async function sendRequest(
     url: string;
     payload?: any;
     headers?: any;
-  }
+  },
 ) {
   const response = await app.inject({
     method: options.method,
@@ -84,7 +81,7 @@ export async function sendAuthenticatedRequest(
     userId?: string;
     role?: 'customer' | 'admin';
     headers?: any;
-  }
+  },
 ) {
   const { userId = '5', role = 'customer', ...rest } = options;
 
@@ -101,7 +98,7 @@ export async function sendAuthenticatedRequest(
 
 export async function sendAdminRequest(
   app: FastifyInstance,
-  options: Omit<Parameters<typeof sendRequest>[1], 'headers'> & { headers?: any }
+  options: Omit<Parameters<typeof sendRequest>[1], 'headers'> & { headers?: any },
 ) {
   return sendAuthenticatedRequest(app, {
     ...options,

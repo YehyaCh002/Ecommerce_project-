@@ -33,8 +33,7 @@ export class ProductsController {
       search: query.search as string,
       minPrice: query.minPrice ? parseFloat(query.minPrice as string) : undefined,
       maxPrice: query.maxPrice ? parseFloat(query.maxPrice as string) : undefined,
-      isActive:
-        query.isActive !== undefined ? query.isActive === 'true' : undefined,
+      isActive: query.isActive !== undefined ? query.isActive === 'true' : undefined,
     };
 
     const products = await this.productService.getAllProducts(filters);
@@ -67,9 +66,7 @@ export class ProductsController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('admin')
   async getStockMovementDetails(@Param('id') id: string) {
-    const movement = await this.productService.getStockMovementDetails(
-      parseInt(id, 10),
-    );
+    const movement = await this.productService.getStockMovementDetails(parseInt(id, 10));
 
     if (!movement) {
       throw new NotFoundException('Stock movement not found');
@@ -117,10 +114,7 @@ export class ProductsController {
   @Roles('admin')
   async updateProduct(@Param('id') id: string, @Body() dto: UpdateProductDto) {
     try {
-      const product = await this.productService.updateProduct(
-        parseInt(id, 10),
-        dto as any,
-      );
+      const product = await this.productService.updateProduct(parseInt(id, 10), dto as any);
       if (!product) {
         throw new NotFoundException('Product not found');
       }
@@ -154,11 +148,10 @@ export class ProductsController {
     @Body() body: { quantity: number; type?: string; variantUpdates?: any[] },
   ) {
     try {
-      const product = await this.productService.updateStock(
-        parseInt(id, 10),
-        body.quantity,
-        { type: body.type, variantUpdates: body.variantUpdates },
-      );
+      const product = await this.productService.updateStock(parseInt(id, 10), body.quantity, {
+        type: body.type,
+        variantUpdates: body.variantUpdates,
+      });
       if (!product) {
         throw new NotFoundException('Product not found');
       }
@@ -176,10 +169,7 @@ export class ProductsController {
   @Patch(':id/status')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('admin')
-  async updateProductStatus(
-    @Param('id') id: string,
-    @Body() dto: UpdateProductStatusDto,
-  ) {
+  async updateProductStatus(@Param('id') id: string, @Body() dto: UpdateProductStatusDto) {
     try {
       const product = await this.productService.setProductActiveState(
         parseInt(id, 10),

@@ -326,7 +326,7 @@ export class OrderService {
     soldFromStore: boolean = false
   ): Promise<Order> {
     // 1. Find or Create Customer
-    let customer = await this.customerService.findOrCreateOrUpdateCustomer({
+    const customer = await this.customerService.findOrCreateOrUpdateCustomer({
       name: customerInfo.name,
       phoneNumber: customerInfo.phoneNumber,
       email: customerInfo.email,

@@ -51,10 +51,7 @@ export class DeliveryPlatformsController {
   @Roles('admin')
   async updatePlatform(@Param('id') id: string, @Body() body: any) {
     try {
-      const platform = await this.platformService.updatePlatform(
-        parseInt(id, 10),
-        body,
-      );
+      const platform = await this.platformService.updatePlatform(parseInt(id, 10), body);
       if (!platform) {
         throw new NotFoundException('Platform not found');
       }
