@@ -29,9 +29,7 @@
     "lint": "eslint src/",
     "lint:fix": "eslint src/ --fix",
     "format": "prettier --write \"src/**/*.ts\"",
-    "format:check": "prettier --check \"src/**/*.ts\"",
-    "load-test": "ts-node load-test.ts",
-    "load-test:individual": "ts-node load-test.ts individual"
+    "format:check": "prettier --check \"src/**/*.ts\""
   },
   "keywords": [
     "nestjs",
@@ -62,14 +60,12 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.58.2",
-    "@types/autocannon": "^7.12.7",
     "@types/bcryptjs": "^2.4.6",
     "@types/jest": "^29.5.14",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^20.19.30",
     "@types/pg": "^8.10.9",
     "@types/supertest": "^7.2.0",
-    "autocannon": "^8.0.0",
     "eslint": "^9.0.0",
     "eslint-config-prettier": "^10.0.0",
     "eslint-plugin-prettier": "^5.0.0",
