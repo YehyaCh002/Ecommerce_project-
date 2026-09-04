@@ -1,5 +1,6 @@
 import { AppDataSource } from '../config/data-source';
 import { Category } from '../entities/Category';
+import { cacheService } from './RedisCacheService';
 
 export class CategoryService {
   private categoryRepository = AppDataSource.getRepository(Category);
@@ -28,14 +29,71 @@ export class CategoryService {
     }
 
     const category = this.categoryRepository.create(data);
-    return await this.categoryRepository.save(category);
+    const saved = await this.categoryRepository.save(category);
+    await this.clearCategoryCache();
+    return saved;
   }
 
-  async getAllCategories(): Promise<Category[]> {
-    return await this.categoryRepository.find({
+  async getAllCategories(pagination?: {
+    page?: number;
+    limit?: number;
+  }): Promise<{
+    data: Category[];
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  }> {
+    const page = pagination?.page && pagination.page > 0 ? pagination.page : 1;
+    let limit = pagination?.limit && pagination.limit > 0 ? pagination.limit : 100;
+    const skip = (page - 1) * limit;
+
+    const cacheKey = `categories:${page}:${limit}`;
+
+    if (cacheService.isEnabled) {
+      const cached = await cacheService.get<{
+        data: Category[];
+        total: number;
+        page: number;
+        limit: number;
+        totalPages: number;
+      }>(cacheKey);
+      if (cached.hit && cached.value) {
+        return cached.value;
+      }
+    }
+
+    const [categories, total] = await this.categoryRepository.findAndCount({
       relations: ['products', 'parentCategory', 'subCategories'],
       order: { name: 'ASC' },
+      skip,
+      take: limit,
     });
+
+    if (total === 0) {
+      limit = 0;
+    }
+
+    const result = {
+      data: categories,
+      total,
+      page,
+      limit,
+      totalPages: limit > 0 ? Math.ceil(total / limit) : 0,
+    };
+
+    if (cacheService.isEnabled) {
+      await cacheService.set(cacheKey, result);
+    }
+
+    return result;
+  }
+
+  async clearCategoryCache(): Promise<void> {
+    await Promise.all([
+      cacheService.flushPrefix('categories:'),
+      cacheService.flushPrefix('products:'),
+    ]);
   }
 
   async getCategoryById(id: number): Promise<Category | null> {
@@ -50,11 +108,14 @@ export class CategoryService {
     data: Partial<Category>
   ): Promise<Category | null> {
     await this.categoryRepository.update(id, data);
-    return this.getCategoryById(id);
+    const updated = await this.getCategoryById(id);
+    await this.clearCategoryCache();
+    return updated;
   }
 
   async deleteCategory(id: number): Promise<boolean> {
     const result = await this.categoryRepository.delete(id);
+    await this.clearCategoryCache();
     return result.affected !== 0;
   }
 }

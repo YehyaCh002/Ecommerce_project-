@@ -52,7 +52,13 @@ describe('Product Routes Integration Tests', () => {
         { id: '2', name: 'Product 2', price: 200, stock: 20 },
       ];
 
-      mockProductService.getAllProducts.mockResolvedValueOnce(mockProducts);
+      mockProductService.getAllProducts.mockResolvedValueOnce({
+        data: mockProducts,
+        total: 2,
+        page: 1,
+        limit: 20,
+        totalPages: 1,
+      });
 
       const response = await sendRequest(app, {
         method: 'GET',
@@ -62,11 +68,20 @@ describe('Product Routes Integration Tests', () => {
       expect(response.status).toBe(200);
       expect(response.body.success).toBe(true);
       expect(response.body.data).toEqual(mockProducts);
-      expect(response.body.count).toBe(2);
+      expect(response.body.meta.total).toBe(2);
+      expect(response.body.meta.page).toBe(1);
+      expect(response.body.meta.limit).toBe(20);
+      expect(response.body.meta.totalPages).toBe(1);
     });
 
     it('should return 200 with an empty array when no products exist', async () => {
-      mockProductService.getAllProducts.mockResolvedValueOnce([]);
+      mockProductService.getAllProducts.mockResolvedValueOnce({
+        data: [],
+        total: 0,
+        page: 1,
+        limit: 20,
+        totalPages: 0,
+      });
 
       const response = await sendRequest(app, {
         method: 'GET',
@@ -76,7 +91,7 @@ describe('Product Routes Integration Tests', () => {
       expect(response.status).toBe(200);
       expect(response.body.success).toBe(true);
       expect(response.body.data).toEqual([]);
-      expect(response.body.count).toBe(0);
+      expect(response.body.meta.total).toBe(0);
     });
   });
 

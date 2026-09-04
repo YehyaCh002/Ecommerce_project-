@@ -46,7 +46,13 @@ describe('Category Routes Integration Tests', () => {
         { id: '1', name: 'Electronics' },
         { id: '2', name: 'Books' },
       ];
-      mockCategoryService.getAllCategories.mockResolvedValueOnce(mockCategories);
+      mockCategoryService.getAllCategories.mockResolvedValueOnce({
+        data: mockCategories,
+        total: 2,
+        page: 1,
+        limit: 100,
+        totalPages: 1,
+      });
 
       const response = await sendRequest(app, {
         method: 'GET',
@@ -56,6 +62,7 @@ describe('Category Routes Integration Tests', () => {
       expect(response.status).toBe(200);
       expect(response.body.success).toBe(true);
       expect(response.body.data).toEqual(mockCategories);
+      expect(response.body.meta.total).toBe(2);
     });
   });
 

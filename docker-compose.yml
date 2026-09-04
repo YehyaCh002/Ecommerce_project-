@@ -20,6 +20,23 @@ services:
     networks:
       - ecommerce_network
 
+  redis:
+    image: redis:7-alpine
+    container_name: ecommerce_redis
+    restart: unless-stopped
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - ecommerce_network
+
   app:
     build:
       context: .
@@ -36,15 +53,20 @@ services:
       DB_USER: ${POSTGRES_USER:-postgres}
       DB_PASSWORD: ${POSTGRES_PASSWORD:-postgres123}
       DB_NAME: ${POSTGRES_DB:-ecommerce}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
       PORT: 3000
     depends_on:
       postgres:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     networks:
       - ecommerce_network
 
 volumes:
   postgres_data:
+  redis_data:
 
 networks:
   ecommerce_network:

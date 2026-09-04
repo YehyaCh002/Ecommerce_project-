@@ -10,6 +10,7 @@ import {
   Param,
   Post,
   Put,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { Roles } from '../common/decorators/roles.decorator';
@@ -24,9 +25,21 @@ export class CategoriesController {
 
   // Public routes
   @Get()
-  async getAllCategories() {
-    const categories = await this.categoryService.getAllCategories();
-    return { success: true, data: categories };
+  async getAllCategories(@Query() query: any) {
+    const page = query.page ? parseInt(query.page as string, 10) : undefined;
+    const limit = query.limit ? parseInt(query.limit as string, 10) : undefined;
+
+    const result = await this.categoryService.getAllCategories({ page, limit });
+    return {
+      success: true,
+      data: result.data,
+      meta: {
+        total: result.total,
+        page: result.page,
+        limit: result.limit,
+        totalPages: result.totalPages,
+      },
+    };
   }
 
   @Get(':id')

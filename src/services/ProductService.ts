@@ -3,8 +3,9 @@ import { Product } from '../entities/Product';
 import { ProductVariant } from '../entities/ProductVariant';
 import { StockMovement } from '../entities/StockMovement';
 import { Category } from '../entities/Category';
-import { FindOptionsWhere, Like } from 'typeorm';
+import { Like } from 'typeorm';
 import { CategoryService } from './CategoryService';
+import { cacheService } from './RedisCacheService';
 
 export class ProductService {
   private productRepository = AppDataSource.getRepository(Product);
@@ -248,24 +249,33 @@ export class ProductService {
     );
 
     const result = await this.getProductById(savedProduct.id);
+    await this.clearProductCache();
     return this.decorateProductWithMetrics(result) as Product;
   }
 
-  async getAllProducts(filters?: {
-    categoryId?: number;
-    search?: string;
-    minPrice?: number;
-    maxPrice?: number;
-    isActive?: boolean;
-  }): Promise<Product[]> {
-    const where: FindOptionsWhere<Product> = {};
+  async getAllProducts(
+    filters?: {
+      categoryId?: number;
+      search?: string;
+      minPrice?: number;
+      maxPrice?: number;
+      isActive?: boolean;
+    },
+    pagination?: { page?: number; limit?: number }
+  ): Promise<{ data: Product[]; total: number; page: number; limit: number; totalPages: number }> {
+    const page = pagination?.page && pagination.page > 0 ? pagination.page : 1;
+    const limit = pagination?.limit && pagination.limit > 0 ? pagination.limit : 20;
+    const skip = (page - 1) * limit;
 
-    if (filters?.categoryId) {
-      where.categoryId = filters.categoryId;
-    }
+    const cacheKey = `products:${page}:${limit}:${JSON.stringify(filters ?? {})}`;
 
-    if (filters?.isActive !== undefined) {
-      where.isActive = filters.isActive;
+    if (cacheService.isEnabled) {
+      const cached = await cacheService.get<
+        { data: Product[]; total: number; page: number; limit: number; totalPages: number }
+      >(cacheKey);
+      if (cached.hit && cached.value) {
+        return cached.value;
+      }
     }
 
     let query = this.productRepository
@@ -305,8 +315,36 @@ export class ProductService {
       });
     }
 
-    const products = await query.orderBy('product.createdAt', 'DESC').getMany();
-    return products.map((product) => this.decorateProductWithMetrics(product) as Product);
+    const total = await query.clone().getCount();
+
+    const products = await query
+      .orderBy('product.createdAt', 'DESC')
+      .skip(skip)
+      .take(limit)
+      .getMany();
+
+    const data = products.map((product) => this.decorateProductWithMetrics(product) as Product);
+
+    const result = {
+      data,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
+
+    if (cacheService.isEnabled) {
+      await cacheService.set(cacheKey, result);
+    }
+
+    return result;
+  }
+
+  async clearProductCache(): Promise<void> {
+    await Promise.all([
+      cacheService.flushPrefix('products:'),
+      cacheService.flushPrefix('categories:'),
+    ]);
   }
 
   async getProductById(id: number): Promise<Product | null> {
@@ -337,6 +375,7 @@ export class ProductService {
 
     await this.productRepository.update(id, data);
     const updated = await this.getProductById(id);
+    await this.clearProductCache();
     return this.decorateProductWithMetrics(updated);
   }
 
@@ -346,11 +385,13 @@ export class ProductService {
 
     await this.productRepository.update(id, { isActive });
     const updated = await this.getProductById(id);
+    await this.clearProductCache();
     return this.decorateProductWithMetrics(updated);
   }
 
   async deleteProduct(id: number): Promise<boolean> {
     const result = await this.productRepository.delete(id);
+    await this.clearProductCache();
     return result.affected !== 0;
   }
 
@@ -411,6 +452,7 @@ export class ProductService {
       })
     );
 
+    await this.clearProductCache();
     return saved;
   }
 
@@ -420,6 +462,7 @@ export class ProductService {
 
     product.stock -= quantity;
     await this.productRepository.save(product);
+    await this.clearProductCache();
     return true;
   }
 
@@ -429,6 +472,7 @@ export class ProductService {
 
     variant.stock -= quantity;
     await this.variantRepository.save(variant);
+    await this.clearProductCache();
     return true;
   }
 
@@ -437,6 +481,8 @@ export class ProductService {
     if (!variant) return null;
 
     variant.stock = quantity;
-    return await this.variantRepository.save(variant);
+    const saved = await this.variantRepository.save(variant);
+    await this.clearProductCache();
+    return saved;
   }
 }

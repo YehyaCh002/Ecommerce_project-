@@ -36,8 +36,20 @@ export class ProductsController {
       isActive: query.isActive !== undefined ? query.isActive === 'true' : undefined,
     };
 
-    const products = await this.productService.getAllProducts(filters);
-    return { success: true, data: products, count: products.length };
+    const page = query.page ? parseInt(query.page as string, 10) : undefined;
+    const limit = query.limit ? parseInt(query.limit as string, 10) : undefined;
+
+    const result = await this.productService.getAllProducts(filters, { page, limit });
+    return {
+      success: true,
+      data: result.data,
+      meta: {
+        total: result.total,
+        page: result.page,
+        limit: result.limit,
+        totalPages: result.totalPages,
+      },
+    };
   }
 
   // Inventory movement routes (must be declared before /:id)
